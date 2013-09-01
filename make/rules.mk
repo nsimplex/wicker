@@ -115,9 +115,13 @@ $(PROJECT_ZIP): $(sort $(FILES))
 	echo -e "$$PROJECT_NAME $$PROJECT_VERSION (http://forums.kleientertainment.com/showthread.php?$$PROJECT_FORUM_THREAD).\nCreated by $$PROJECT_AUTHOR.\nPackaged on `date +%F`." | \
 		( cd ..; zip -FS -8 --archive-comment $(CURDIR)/$(PROJECT_ZIP) $(foreach f, $(FILES), $(notdir $(CURDIR))/$(f)) )
 
+CLEANABLE_FILES:=$(PROJECT_ZIP)
+ifndef IS_PERSISTENT
+ CLEANABLE_FILES+=$(WICKER_GENERATED_FILES)
+endif
 
 clean:
-	$(RM) $(WICKER_GENERATED_FILES) $(PROJECT_ZIP)
+	$(RM) $(CLEANABLE_FILES)
 
 count: $(sort $(filter-out $(LICENSE_FILES), $(WICKER_PROJECT_FILES)))
 	@(for i in $^; do [[ "$$(file -bi "$$i")" =~ "text/" ]] && wc -l $$i; done) | sort -s -g | perl -e '$$t = 0; while($$l = <>){ $$t += $$l; print $$l; } print "Total: $$t\n";'
