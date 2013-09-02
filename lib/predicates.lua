@@ -27,6 +27,9 @@ module( ..., require(_modname .. '.booter') )
 BindWickerModule 'paradigms.logic'
 
 
+require 'entityscript'
+
+
 function Less(a, b)
 	return a < b
 end
@@ -143,6 +146,8 @@ end
 IsOkEntity = LambdaAnd( IsEntityScript, IsOk )
 
 
-_M.PrefabExists = PrefabExists
+function PrefabExists(name)
+	return _G.PrefabExists(name)
+end
 
 return _M

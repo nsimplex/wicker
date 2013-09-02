@@ -216,27 +216,40 @@ end
 
 -- Works even if this is called on worldgen, etc.
 local function import_game_essentials_into(t)
+	--[[
+	-- These are loaded right away into the environment.
+	-- The main reason for NOT including something here
+	-- is if it doesn't exist during worldgen.
+	--]]
 	local mandatory_imports = {
+		"print",
 		"nolineprint",
 
 		"Class",
-		"EntityScript",
 		"Vector3",
 		"Point",
 		"TUNING",
 		"STRINGS",
+		"GROUND",
 
 		"distsq",
 
-		"PrefabExists",
-		"CreateEntity",
 		"Prefab",
 	}
+	--[[
+	-- These are loaded on the fly, IF they exist.
+	--]]
+
 	local optional_imports = {
 		"TheSim",
+		"SaveIndex",
+		"SaveGameIndex",
 
+		"EntityScript",
+		"CreateEntity",
 		"SpawnPrefab",
 		"DebugSpawn",
+		"PrefabExists",
 
 		"GetTime",
 		
@@ -245,7 +258,6 @@ local function import_game_essentials_into(t)
 		"GetClock",
 		"GetSeasonManager",
 
-		"GROUND",
 		"GetGroundTypeAtPosition",
 	}
 
@@ -260,7 +272,8 @@ local function import_game_essentials_into(t)
 	AttachMetaIndex(LazyCopier(_G, import_filter), t)
 
 	for _, k in ipairs(mandatory_imports) do
-		assert( t[k] )
+		assert( rawget(_G, k) ~= nil, ("The mandatory import %q doesn't exist!"):format(k) )
+		assert( t[k] ~= nil )
 	end
 
 	t.GLOBAL = _G
