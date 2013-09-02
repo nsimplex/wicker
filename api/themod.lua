@@ -68,21 +68,91 @@ local function get_hook_spec(self, id)
 end
 
 
+local function EmbedPlugin(self, specs_table, wrapper, full_name, id, fn)
+	assert( Pred.IsTable(specs_table) )
+	assert( Lambda.IsFunctional(wrapper) )
+	assert( Pred.IsString(full_name) )
+	assert( Lambda.IsFunctional(fn) )
+
+	local norm_id = normalize_id(id)
+
+	local spec = {
+		id = id,
+		fn = fn,
+		full_name = full_name,
+	}
+	
+	specs_table[norm_id] = spec
+
+	self[full_name] = function(self, ...)
+		ModCheck(self)
+		return wrapper(self, norm_id, ...)
+	end
+
+	return spec
+end
+
+--[[
+-- Embeds a new adder (such as AddTile).
+--
+-- @param id should be the method's name without the Add prefix.
+--]]
+function Mod:EmbedAdder(id, fn)
+	ModCheck(self)
+	assert( Pred.IsWordable(id) )
+	id = tostring(id)
+
+	local specs_table = self[initspec_key].add
+	local wrapper = self.Add
+	local full_name = "Add" .. id
+	
+	EmbedPlugin(self, specs_table, wrapper, full_name, id, fn)
+end
+
+--[[
+-- Embeds a new hook (such as AddSaveIndexPostInit).
+--
+-- @param id should be the method's name without the Add prefix and the
+-- (Post|Pre)Init suffix.
+--
+-- @param when should be "post" or "pre", defaulting to "post".
+--]]
+function Mod:EmbedHook(id, fn, when)
+	ModCheck(self)
+	assert( Pred.IsWordable(id) )
+	id = tostring(id)
+
+	when = when or "post"
+	assert( Pred.IsWordable(when) )
+	when = tostring(when)
+
+	if when:lower() == "post" then
+		when = "Post"
+	elseif when:lower() == "pre" then
+		when = "Pre"
+	else
+		return error(("Invalid `when' parameter %q given to AddHook."):format(when))
+	end
+
+	local specs_table = self[initspec_key].hook
+	local wrapper = self.AddHook
+	local full_name = "Add" .. id .. when .. "Init"
+
+	EmbedPlugin(self, specs_table, wrapper, full_name, id, fn).when = when:lower()
+end
+
+
 -- Slurps a mod environment (either from modmain or modworldgenmain)
 function Mod:SlurpEnvironment(env, overwrite)
 	assert( type(env) == "table" )
 
 	if overwrite == nil then overwrite = true end
 
-	local add_specs = self[initspec_key].add
-	local hook_specs = self[initspec_key].hook
-
 	for k, v in pairs(env) do
-		if type(k) == 'string' then
+		if type(k) == 'string' and Lambda.IsFunctional(v) then
 			local stem = k:match('^Add(.+)$')
 			if stem then
 				local id, when
-				local specs_table = hook_specs
 
 				id = stem:match("^(.-)PostInit$")
 				if id then
@@ -93,37 +163,14 @@ function Mod:SlurpEnvironment(env, overwrite)
 						when = "Pre"
 					else
 						id = stem
-						specs_table = add_specs
 					end
 				end
 
-				local norm_id = normalize_id(id)
-
-				if overwrite or specs_table[norm_id] == nil then
-					specs_table[norm_id] = {
-						id = id,
-						fn = v,
-						full_name = k,
-					}
-
+				if overwrite or rawget(self, k) == nil then
 					if when then
-						specs_table[norm_id].when = when:lower()
-					end
-				end
-
-				if rawget(self, k) == nil then
-					local method
-					if when then
-						method = self["Add" .. when .. "Init"]
+						self:EmbedHook(id, v, when)
 					else
-						method = self.Add
-					end
-
-					assert( Lambda.IsFunctional(method) )
-
-					self[k] = function(self, ...)
-						ModCheck(self)
-						return method(self, norm_id, ...)
+						self:EmbedAdder(id, v)
 					end
 				end
 			end
