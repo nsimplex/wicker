@@ -50,8 +50,8 @@ $(info Setting up targets...)
 dist: $(PROJECT_ZIP) $(WICKER_GENERATED_FILES)
 
 wicker:
-#	( cd $(SCRIPT_DIR)/wicker; git pull )
-#	( cd $(TOOLS_DIR); git pull )
+	-git subtree pull --prefix $(SCRIPT_DIR)/wicker https://github.com/nsimplex/wicker.git --squash
+	-git subtree pull --prefix $(TOOLS_DIR) https://github.com/nsimplex/wickertools.git --squash
 
 boot: $(TOOLS_DIR)/bootup_gen.pl
 	find "$(SCRIPT_DIR)" -type f -name '*.lua' -exec perl "$<" '{}' \;
