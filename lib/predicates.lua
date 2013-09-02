@@ -30,6 +30,9 @@ BindWickerModule 'paradigms.logic'
 require 'entityscript'
 
 
+IsWorldgen = assert( IsWorldgen )
+IsWorldGen = assert( IsWorldGen )
+
 function Less(a, b)
 	return a < b
 end
@@ -145,9 +148,8 @@ end
 
 IsOkEntity = LambdaAnd( IsEntityScript, IsOk )
 
-
-function PrefabExists(name)
-	return _G.PrefabExists(name)
+if not IsWorldgen() then
+	PrefabExists = _G.PrefabExists
 end
 
 return _M

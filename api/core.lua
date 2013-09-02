@@ -62,6 +62,13 @@ local _M = _M
 _M._modname = _modname
 
 
+function IsWorldgen()
+	return rawget(_G, "SEED") ~= nil
+end
+
+IsWorldGen = IsWorldgen
+
+
 -- Returns an __index metamethod.
 function LazyCopier(source, filter)
 	if not filter then
