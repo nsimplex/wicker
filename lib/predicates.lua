@@ -79,8 +79,11 @@ end
 IsNonNegative = LambdaNot(IsNegative)
 IsNonPositive = LambdaNot(IsPositive)
 
+function IsInteger(n) return IsNumber(n) and n == math.floor(n) end
+
 for _,v in ipairs {"Positive", "Negative", "NonNegative", "NonPositive"} do
 	_M["Is" .. v .. "Number"] = LambdaAnd(IsNumber, _M["Is" .. v])
+	_M["Is" .. v .. "Integer"] = LambdaAnd(IsInteger, _M["Is" .. v])
 end
 
 function IsInClosedRange(a, b)
