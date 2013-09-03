@@ -238,6 +238,9 @@ local function import_game_essentials_into(t)
 		"TUNING",
 		"STRINGS",
 		"GROUND",
+		
+		"KEYS",
+		"LOCKS",
 
 		"distsq",
 
@@ -251,6 +254,8 @@ local function import_game_essentials_into(t)
 		"TheSim",
 		"SaveIndex",
 		"SaveGameIndex",
+
+		"LEVELTYPE",
 
 		"EntityScript",
 		"CreateEntity",
