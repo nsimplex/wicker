@@ -239,9 +239,6 @@ local function import_game_essentials_into(t)
 		"STRINGS",
 		"GROUND",
 		
-		"KEYS",
-		"LOCKS",
-
 		"distsq",
 
 		"Prefab",
@@ -256,6 +253,8 @@ local function import_game_essentials_into(t)
 		"SaveGameIndex",
 
 		"LEVELTYPE",
+		"KEYS",
+		"LOCKS",
 
 		"EntityScript",
 		"CreateEntity",
