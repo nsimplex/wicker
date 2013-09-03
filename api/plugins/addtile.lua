@@ -22,6 +22,7 @@ module( ..., require(_modname .. '.booter') )
 --@@END ENVIRONMENT BOOTUP
 
 
+require 'util'
 require 'map/terrain'
 
 local tiledefs = require 'worldtiledefs'
@@ -29,6 +30,9 @@ local GROUND = _G.GROUND
 local GROUND_NAMES = _G.GROUND_NAMES
 
 local resolvefilepath = _G.resolvefilepath
+local softresolvefilepath = _G.softresolvefilepath
+
+local Asset = _G.Asset
 
 --[[
 -- The return value from this function should be stored and
@@ -54,6 +58,43 @@ local function getNewGroundValue(id)
 	end
 
 	return i
+end
+
+
+local GroundAtlas = rawget(_G, "GroundAtlas") or function( name )
+	return ("levels/tiles/%s.xml"):format(name) 
+end
+
+local GroundImage = rawget(_G, "GroundImage") or function( name )
+	return ("levels/tiles/%s.tex"):format(name) 
+end
+
+local noise_locations = {
+	"%s.tex",
+	"levels/textures/%s.tex",
+}
+
+local function GroundNoise( name )
+	local trimmed_name = name:gsub("%.tex$", "")
+	for _, pattern in ipairs(noise_locations) do
+		local tentative = pattern:format(trimmed_name)
+		if softresolvefilepath(tentative) then
+				return tentative
+		end
+	end
+
+	-- This is meant to trigger an error.
+	resolvefilepath( name )
+	return error("This shouldn't be thrown. But your texture path is invalid, btw.")
+end
+
+
+local function AddAssets(specs, assets)
+	assets = assets or tiledefs.assets
+	
+	table.insert( assets, Asset( "IMAGE", GroundNoise( specs.noise_texture ) ) )
+	table.insert( assets, Asset( "IMAGE", GroundImage( specs.name ) ) )
+	table.insert( assets, Asset( "FILE", GroundAtlas( specs.name ) ) )
 end
 
 
@@ -114,10 +155,13 @@ function AddTile(id, numerical_id, name, specs, minispecs)
 			real_specs[k] = specs[k]
 		end
 	end
+	real_specs.noise_texture = GroundNoise( real_specs.noise_texture )
 
 	table.insert(tiledefs.ground, {
 		GROUND[id], real_specs
 	})
+
+	AddAssets(real_specs)
 
 
 	local real_minispecs = {}
@@ -132,12 +176,14 @@ function AddTile(id, numerical_id, name, specs, minispecs)
 	TheMod:AddPrefabPostInit("minimap", function(inst)
 		local handle = GLOBAL.MapLayerManager:CreateRenderLayer(
 			GROUND[id],
-			resolvefilepath( ("levels/tiles/%s.xml"):format(real_minispecs.name) ),
-			resolvefilepath( ("levels/tiles/%s.tex"):format(real_minispecs.name) ),
-			resolvefilepath( real_minispecs.noise_texture )
+			resolvefilepath( GroundAtlas(real_minispecs.name) ),
+			resolvefilepath( GroundImage(real_minispecs.name) ),
+			resolvefilepath( GroundNoise(real_minispecs.noise_texture) )
 		)
 		inst.MiniMap:AddRenderLayer( handle )
 	end)
+
+	AddAssets(real_minispecs)
 
 
 	return real_specs, real_minispecs
