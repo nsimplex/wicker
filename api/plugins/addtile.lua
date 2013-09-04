@@ -39,7 +39,7 @@ if VarExists("softresolvefilepath") then
 else
 	softresolvefilepath = function(path)
 		local status, ret = pcall(resolvefilepath, path)
-		return status and ret ~= nil
+		return status and ret
 	end
 end
 
