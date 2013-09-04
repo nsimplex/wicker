@@ -62,6 +62,21 @@ local _M = _M
 _M._modname = _modname
 
 
+do
+	local function indextable(t, k)
+		return t[k]
+	end
+
+	function VarExists(name, env)
+		env = env or _G
+
+		local status, val = pcall(indextable, env, name)
+
+		return status and val ~= nil
+	end
+end
+
+
 function IsWorldgen()
 	return rawget(_G, "SEED") ~= nil
 end

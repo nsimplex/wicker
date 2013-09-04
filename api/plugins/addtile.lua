@@ -25,14 +25,24 @@ module( ..., require(_modname .. '.booter') )
 require 'util'
 require 'map/terrain'
 
+local Asset = _G.Asset
+
 local tiledefs = require 'worldtiledefs'
 local GROUND = _G.GROUND
 local GROUND_NAMES = _G.GROUND_NAMES
 
 local resolvefilepath = _G.resolvefilepath
-local softresolvefilepath = _G.softresolvefilepath
 
-local Asset = _G.Asset
+local softresolvefilepath
+if VarExists("softresolvefilepath") then
+	softresolvefilepath = _G.softresolvefilepath
+else
+	softresolvefilepath = function(path)
+		local status, ret = pcall(resolvefilepath, path)
+		return status and ret ~= nil
+	end
+end
+
 
 --[[
 -- The return value from this function should be stored and
