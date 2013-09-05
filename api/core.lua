@@ -62,6 +62,13 @@ local _M = _M
 _M._modname = _modname
 
 
+function AddToCore(k, v)
+	if _M[k] == nil then
+		_M[k] = v
+	end
+end
+
+
 do
 	local function indextable(t, k)
 		return t[k]
