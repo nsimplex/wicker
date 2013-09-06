@@ -70,7 +70,7 @@ local Mod = Class(Debuggable, function(self)
 		assert( Pred.IsWordable(mainname), "The main's name should be a string." )
 		mainname = tostring(mainname)
 
-		local Rets = {raw_Run(mainname, ...)}
+		local Rets = {raw_Run(self, mainname, ...)}
 
 		ran_set[mainname] = true
 		postruns(mainname, ...)
