@@ -255,7 +255,6 @@ local function import_game_essentials_into(t)
 	--]]
 	local mandatory_imports = {
 		"print",
-		"nolineprint",
 
 		"Class",
 		"Vector3",
@@ -273,6 +272,8 @@ local function import_game_essentials_into(t)
 	--]]
 
 	local optional_imports = {
+		"nolineprint",
+
 		"TheSim",
 		"SaveIndex",
 		"SaveGameIndex",
@@ -340,6 +341,12 @@ local function raw_bootstrapper(wicker_stem)
 
 	import_stdlib_into(_M)
 	import_game_essentials_into(_M)
+
+	if not rawget(_G, "nolineprint") then
+		function _M.nolineprint(...)
+			return print(...)
+		end
+	end
 
 	-- Returns a unique key.
 	GetModKey = (function()
