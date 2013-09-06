@@ -49,7 +49,7 @@ local Mod = Class(Debuggable, function(self)
 
 	local postruns = FunctionQueue()
 
-	function Mod:AddPostRun(f)
+	function self:AddPostRun(f)
 		ModCheck(self)
 		assert( Lambda.IsFunctional(f) )
 		table.insert( postruns, f )
