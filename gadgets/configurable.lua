@@ -125,7 +125,7 @@ local configuration_env = {
 }
 
 local function put_error(msg)
-	return error(msg)
+	return error(msg, 3)
 end
 
 local loaded_funcs = setmetatable({}, {__mode = "k"})

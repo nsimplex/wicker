@@ -769,7 +769,7 @@ end
 function Error(...)
 	local Args = {...}
 	return function()
-		return error( table.concat( CompactlyMap(tostring, ipairs(Args)) ) )
+		return error( table.concat( CompactlyMap(tostring, ipairs(Args)) ), 2 )
 	end
 end
 

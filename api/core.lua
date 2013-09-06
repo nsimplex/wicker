@@ -122,7 +122,7 @@ function LazyCopier(source, filter)
 			end
 		end
 	else
-		return error("Invalid filter given to LazyCopier.")
+		return error("Invalid filter given to LazyCopier.", 2)
 	end
 end
 local LazyCopier = LazyCopier
@@ -322,7 +322,7 @@ function RobustlyCall(f, ...)
 	end, debug.traceback) }
 
 	if not Rets[1] then
-		return error(Rets[2])
+		return error(Rets[2], 2)
 	else
 		return select(2, unpack(Rets))
 	end
@@ -438,7 +438,7 @@ local function raw_bootstrapper(wicker_stem)
 	local InjectNonPrivatesIntoTable = InjectNonPrivatesIntoTable
 	
 	local function trace_error(msg)
-		return error(msg .. "\n" .. debug.traceback())
+		return error(debug.traceback(msg, 2), 2)
 	end
 	
 	-- Returns the index (relative to the calling function) in the Lua stack of the last function with a different environment than the outer function.
@@ -565,8 +565,7 @@ local function raw_bootstrapper(wicker_stem)
 		else
 			what = tostring(what or "")
 		end
-		local info = GetDebugInfo() or {}
-		return error(  ("The %s(%s) call didn't return a table at:\n%s:%d"):format( loader_metadata[loader].name, what, info.source or "?", info.currentline or 0 )  )
+		return error(  ("The %s(%s) call didn't return a table"):format( loader_metadata[loader].name, what), 3  )
 	end
 	
 	

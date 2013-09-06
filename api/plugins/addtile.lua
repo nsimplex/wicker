@@ -64,7 +64,7 @@ local function getNewGroundValue(id)
 	if i >= GROUND.UNDERGROUND then
 		-- The game assumes values greater than or equal to GROUND.UNDERGROUND
 		-- represent walls.
-		return error("No more values available!")
+		return error("No more values available!", 3)
 	end
 
 	return i
@@ -94,8 +94,8 @@ local function GroundNoise( name )
 	end
 
 	-- This is meant to trigger an error.
-	resolvefilepath( name )
-	return error("This shouldn't be thrown. But your texture path is invalid, btw.")
+	local status, err = pcall(resolvefilepath, name)
+	return error(err or "This shouldn't be thrown. But your texture path is invalid, btw.", 3)
 end
 
 
@@ -152,7 +152,7 @@ function AddTile(id, numerical_id, name, specs, minispecs)
 	else
 		for k, v in pairs(GROUND) do
 			if v == numerical_id then
-				return error(("The numerical value %d is already used by GROUND.%s!"):format(v, tostring(k)))
+				return error(("The numerical value %d is already used by GROUND.%s!"):format(v, tostring(k)), 2)
 			end
 		end
 	end

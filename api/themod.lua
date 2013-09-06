@@ -166,7 +166,7 @@ function Mod:EmbedHook(id, fn, when)
 	elseif when:lower() == "pre" then
 		when = "Pre"
 	else
-		return error(("Invalid `when' parameter %q given to AddHook."):format(when))
+		return error(("Invalid `when' parameter %q given to EmbedHook."):format(when), 2)
 	end
 
 	local specs_table = self[initspec_key].hook
@@ -273,7 +273,7 @@ end
 function Mod:Add(id, ...)
 	ModCheck(self)
 	local spec = get_add_spec( self, normalize_id(id) )
-	if not spec then return error(("Invalid Add- id %q"):format(id)) end
+	if not spec then return error(("Invalid Add- id %q"):format(id), 2) end
 	return call_add_fn(self, spec, ...)
 end
 
@@ -323,7 +323,7 @@ end
 function Mod:AddHook(id, ...)
 	ModCheck(self)
 	local spec = get_hook_spec( self, normalize_id(id) )
-	if not spec then return error(("Invalid hook id %q"):format(id)) end
+	if not spec then return error(("Invalid hook id %q"):format(id), 2) end
 	return Mod_HookAdder(self, spec, {})(...)
 end
 
@@ -333,7 +333,7 @@ for _, when in ipairs{"Pre", "Post"} do
 	Mod["Add" .. when .. "Init"] = function(self, id, ...)
 		ModCheck(self)
 		local spec = get_hook_spec( self, normalize_id(id) )
-		if not spec or spec.when ~= when_low then return error(("Invalid %sInit id %q"):format(when, id)) end
+		if not spec or spec.when ~= when_low then return error(("Invalid %sInit id %q"):format(when, id), 2) end
 		return Mod_HookAdder(self, spec, {})(...)
 	end
 end
