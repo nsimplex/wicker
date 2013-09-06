@@ -31,17 +31,52 @@ local Pred = wickerrequire 'lib.predicates'
 
 local Debuggable = wickerrequire 'gadgets.debuggable'
 
+local FunctionQueue = wickerrequire 'gadgets.functionqueue'
+
 
 -- Key, used as an index to a Mod object, leading to a table with a field
 -- 'add', storing the direct Add methods (such as AddLevel) specs, and 
 -- 'hook', storing the AddPostInit and AddPreInit methods specs.
 local initspec_key = {}
 
+local raw_Run
 
 local Mod = Class(Debuggable, function(self)
 	Debuggable._ctor(self, 'TheMod', false)
 
 	self[initspec_key] = { add = {}, hook = {} }
+
+
+	local postruns = FunctionQueue()
+
+	function Mod:AddPostRun(f)
+		ModCheck(self)
+		assert( Lambda.IsFunctional(f) )
+		table.insert( postruns, f )
+	end
+
+	local ran_set = {}
+
+	function self:Ran(mainname)
+		ModCheck(self)
+		assert( Pred.IsWordable(mainname), "The main's name should be a string." )
+		mainname = tostring(mainname)
+
+		return ran_set[mainname]
+	end
+
+	function self:Run(mainname, ...)
+		ModCheck(self)
+		assert( Pred.IsWordable(mainname), "The main's name should be a string." )
+		mainname = tostring(mainname)
+
+		local Rets = {raw_Run(mainname, ...)}
+
+		ran_set[mainname] = true
+		postruns(mainname, ...)
+
+		return unpack(Rets)
+	end
 end)
 
 Pred.IsMod = Pred.IsInstanceOf(Mod)
@@ -212,17 +247,8 @@ local function do_main(mainname, ...)
 	return main(...)
 end
 
-local function raw_Run(self, mainname, ...)
-	ModCheck(self)
-
-	assert( Pred.IsWordable(mainname), "The main's name should be a string." )
-	mainname = tostring(mainname)
-
+raw_Run = function(self, mainname, ...)
 	return do_main(mainname, ...)
-end
-
-function Mod:Run(mainname, ...)
-	return RobustlyCall(raw_Run, self, mainname, ...)
 end
 
 

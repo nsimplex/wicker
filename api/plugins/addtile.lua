@@ -99,12 +99,18 @@ local function GroundNoise( name )
 end
 
 
-local function AddAssets(specs, assets)
-	assets = assets or tiledefs.assets
-	
-	table.insert( assets, Asset( "IMAGE", GroundNoise( specs.noise_texture ) ) )
-	table.insert( assets, Asset( "IMAGE", GroundImage( specs.name ) ) )
-	table.insert( assets, Asset( "FILE", GroundAtlas( specs.name ) ) )
+local function AddAssetsTo(assets_table, specs)
+	table.insert( assets_table, Asset( "IMAGE", GroundNoise( specs.noise_texture ) ) )
+	table.insert( assets_table, Asset( "IMAGE", GroundImage( specs.name ) ) )
+	table.insert( assets_table, Asset( "FILE", GroundAtlas( specs.name ) ) )
+end
+
+local function AddAssets(specs)
+	AddAssetsTo(tiledefs.assets)
+	TheMod:AddPostRun(function()
+		modenv.Assets = modenv.Assets or {}
+		AddAssetsTo(modenv.Assets, specs)
+	end)
 end
 
 
