@@ -106,7 +106,7 @@ local function AddAssetsTo(assets_table, specs)
 end
 
 local function AddAssets(specs)
-	AddAssetsTo(tiledefs.assets)
+	AddAssetsTo(tiledefs.assets, specs)
 	TheMod:AddPostRun(function()
 		modenv.Assets = modenv.Assets or {}
 		AddAssetsTo(modenv.Assets, specs)
