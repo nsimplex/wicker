@@ -85,6 +85,7 @@ Tree.WeakNew = Tree.NewWeak
 Tree.IsAbstractTree = Lambda.Compose( Lambda.Getter {[tree_meta] = true, [weak_tree_meta] = true}, getmetatable )
 
 Tree.IsTree = Pred.IsTable
+Pred.IsTree = Tree.IsTree
 
 -- There are no empty trees with this implementation.
 -- Every tree has at least its root as a node.
@@ -197,5 +198,34 @@ Tree.IterativeGet = function(t, f, s, var)
 		return t
 	end
 end
+
+
+
+--[[
+-- Conditionally injects a tree T into a table t through its dfs postorder.
+-- The tree T may be a metatable-less table, as long as its actually a tree.
+--
+-- I think this should be in dfs, as part of a more general set of algorithms,
+-- but for now it's here (and if it's ever moved, it should be aliased here).
+--]]
+function Tree.InjectIntoIf(p, t, T)
+	for k, v in pairs(T) do
+		if p(v, k) then
+			if Tree.IsTree(v) then
+				if not Tree.IsTree(t[k]) then
+					t[k] = {}
+				end
+				Tree.InjectInto(t[k], v)
+			else
+				t[k] = v
+			end
+		end
+	end
+	return t
+end
+
+Tree.InjectInto = Lambda.BindFirst(Tree.InjectIntoIf, Lambda.True)
+
+
 
 return Tree

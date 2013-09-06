@@ -128,6 +128,17 @@ end
 local LazyCopier = LazyCopier
 
 function AttachMetaIndex(fn, object)
+	local function to_function(index_method)
+		if type(index_method) == "table" then
+				return function(_, k)
+						return index_method[k]
+				end
+		else
+				assert( type(index_method) == "function", "An index metamethod should either a table or a function." )
+				return index_method
+		end
+	end
+
 	local meta = getmetatable( object )
 
 	if not meta then
@@ -137,22 +148,14 @@ function AttachMetaIndex(fn, object)
 
 	local oldfn = meta.__index
 
-	if type(oldfn) == "function" then
+	if oldfn then
+		fn, oldfn = to_function(fn), to_function(oldfn)
 		meta.__index = function(object, k)
 			local v = fn(object, k)
 			if v ~= nil then
 				return v
 			else
 				return oldfn(object, k)
-			end
-		end
-	elseif type(oldfn) == "table" then
-		meta.__index = function(object, k)
-			local v = fn(object, k)
-			if v ~= nil then
-				return v
-			else
-				return oldfn[k]
 			end
 		end
 	else
@@ -610,7 +613,7 @@ local function raw_bootstrapper(wicker_stem)
 				push_loader_error(loader, what)
 			end
 	
-			AttachMetaIndex( LazyCopier(M), env )	
+			AttachMetaIndex( M, env )	
 	
 			return M
 		end

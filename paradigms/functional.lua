@@ -750,6 +750,12 @@ function ConceptualizeSingletonObject(object, ret)
 	end
 	
 	if oldindex then
+		if type(oldindex) ~= "function" then
+			local old_oldindex = oldindex
+			oldindex = function(_, k)
+					return old_oldindex[k]
+			end
+		end
 		meta.__index = function(t, k)
 			local v = newindex(t, k)
 			if v ~= nil then
@@ -772,6 +778,16 @@ function Error(...)
 		return error( table.concat( CompactlyMap(tostring, ipairs(Args)) ), 2 )
 	end
 end
+
+function Assert(p, ...)
+	assert( Lambda.IsFunctional(p), "The assertion predicate should be functional." )
+	local Args = {...}
+	return function(...)
+		local b = p(...)
+		return assert( b, b or table.concat( CompactlyMap(tostring, ipairs(Args)) ) )
+	end
+end
+
 
 -- Receives an iterator over functions.
 -- Its return values will be flipped, according to the general convention adopted here.

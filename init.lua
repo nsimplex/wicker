@@ -55,8 +55,6 @@ core.TheCore = nil
 TheCore = nil
 
 
-local Configurable = wickerrequire 'gadgets.configurable'
-Configurable.SetMasterKey( GetModKey() )
 
 local TheMod = (function()
 	local mod_builder = GetTheMod()
@@ -128,11 +126,16 @@ local function raw_init(env, overwrite)
 	AssertEnvironmentValidity(_M)
 
 
-	TheMod:LoadConfigurationFunction(modrequire('rc.defaults'), 'the default configuration file')
-	TheMod:LoadConfigurationFile('rc.lua')
+	-- Now the loading is explicit.
+	--[[
+	local Configurable = wickerrequire 'gadgets.configurable'
+	TheMod:LoadConfiguration(modrequire('rc.defaults'), 'the default configuration file')
+	TheMod:LoadConfiguration('rc.lua')
+	]]--
 
 
 	AssertEnvironmentValidity(_M)
+
 
 	return TheMod
 end

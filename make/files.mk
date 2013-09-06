@@ -1,6 +1,6 @@
 # Editable part
 
-WICKER_FILES_CATEGORIES:=BASE API UTIL PARADIGM LIB GADGET PROTOCOMPONENT MISC \
+WICKER_FILES_CATEGORIES:=BASE API UTIL PARADIGM LIB ADJECTIVE GADGET MATH PROTOCOMPONENT MISC \
 	LICENSE
 
 
@@ -19,8 +19,14 @@ BARE_WICKER_PARADIGM_FILES:=functional.lua logic.lua
 WICKER_LIB_DIR_SUF:=lib
 BARE_WICKER_LIB_FILES:=predicates.lua searchspace.lua
 
+WICKER_ADJECTIVE_DIR_SUF:=adjectives
+BARE_WICKER_ADJECTIVE_FILES:=configurable.lua debuggable.lua
+
 WICKER_GADGET_DIR_SUF:=gadgets
 BARE_WICKER_GADGET_FILES:=configurable.lua debuggable.lua eventchain.lua functionqueue.lua
+
+WICKER_MATH_DIR_SUF:=math
+BARE_WICKER_MATH_FILES:=probability/markovchain.lua
 
 WICKER_PROTOCOMPONENT_DIR_SUF:=protocomponents
 BARE_WICKER_PROTOCOMPONENT_FILES:=base.lua conditionaltasker.lua

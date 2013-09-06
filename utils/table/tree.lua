@@ -21,6 +21,10 @@ module( ..., require(_modname .. '.booter') )
 
 --@@END ENVIRONMENT BOOTUP
 
+local Lambda = wickerrequire 'paradigms.functional'
+local Logic = wickerrequire 'paradigms.logic'
+
+
 InjectModPackage 'tree.core'
 
 dfs = pkgrequire 'tree.dfs'

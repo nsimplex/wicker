@@ -47,6 +47,40 @@ local Mod = Class(Debuggable, function(self)
 	self[initspec_key] = { add = {}, hook = {} }
 
 
+	--[[
+	local silently_failed = false
+
+	function self:Failed()
+			return silently_failed
+	end
+
+	function self:SilentlyFailed()
+			return silently_failed
+	end
+
+	local function push_errors()
+		self:FlushConfigurationErrors()
+		if self.AddGlobalClassPostConstruct then
+			self:AddGamePostInit(function()
+				self:FlushConfigurationErrors()
+			end)
+		end
+	end
+
+	function self:SilentlyFail()
+		ModCheck(self)
+		if not silently_failed then
+			silently_failed = true
+		end
+		push_errors()
+		return error("Silently failing...", 0)
+	end
+
+	local function split_first(x, ...)
+		return x, {...}
+	end
+	]]--
+
 	local postruns = FunctionQueue()
 
 	function self:AddPostRun(f)
@@ -54,6 +88,8 @@ local Mod = Class(Debuggable, function(self)
 		assert( Lambda.IsFunctional(f) )
 		table.insert( postruns, f )
 	end
+
+
 
 	local ran_set = {}
 
@@ -67,10 +103,29 @@ local Mod = Class(Debuggable, function(self)
 
 	function self:Run(mainname, ...)
 		ModCheck(self)
+
+		--if self:Failed() then return push_errors() end
+
 		assert( Pred.IsWordable(mainname), "The main's name should be a string." )
 		mainname = tostring(mainname)
 
 		local Rets = {raw_Run(self, mainname, ...)}
+
+		--[[
+		local MainArgs = {...}
+
+		local status, Rets = split_first(xpcall(function()
+				return raw_Run(self, mainname, unpack(MainArgs))
+		end, debug.traceback))
+
+		if not status then
+			if self:SilentlyFailed() then
+				return
+			else
+				return error(Rets[1], 0)
+			end
+		end
+		]]--
 
 		ran_set[mainname] = true
 		postruns(mainname, ...)
