@@ -25,6 +25,7 @@ string = pkgrequire 'utils.string'
 table = pkgrequire 'utils.table'
 algo = pkgrequire 'utils.algo'
 time = pkgrequire 'utils.time'
+filesystem = pkgrequire 'utils.filesystem'
 io = pkgrequire 'utils.io'
 game = pkgrequire 'utils.game'
 
