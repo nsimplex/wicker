@@ -329,7 +329,7 @@ LoadConfiguration = function(root, what, description)
 		loader = LoadConfigurationFile
 	end
 
-	local status, err = pcall(loader, GetConfigurationTable(self), what, description)
+	local status, err = pcall(loader, root, what, description)
 
 	if not status then put_error(err) end
 end
