@@ -215,7 +215,7 @@ function Tree.InjectIntoIf(p, t, T)
 				if not Tree.IsTree(t[k]) then
 					t[k] = {}
 				end
-				Tree.InjectInto(t[k], v)
+				Tree.InjectIntoIf(p, t[k], v)
 			else
 				t[k] = v
 			end

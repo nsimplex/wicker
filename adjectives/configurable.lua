@@ -217,18 +217,6 @@ local function LoadConfigurationFunction(root, cfg, name)
 		end,
 	}
 
-	function meta.__newindex(env, k, v)
-		if type(k) == "string" and not k:match('^_') then
-			if not schema[k] or schema[k](v) then
-				root[k] = v
-			else
-				table.insert( bad_options, {k = k, v = v} )
-			end
-		else
-			rawset(env, k, v)
-		end
-	end
-
 	setmetatable(tmpenv, meta)
 	setfenv(cfg, tmpenv)
 
