@@ -38,7 +38,10 @@ if not Pred.IsTable(ScriptErrorScreen) then
 end
 
 
-local Configurable = Class(function(self)
+local Configurable = Class(function(self, key)
+	if key ~= nil then
+		self:SetConfigurationKey(key)
+	end
 end)
 
 Pred.IsConfigurable = Pred.IsInstanceOf(Configurable)
