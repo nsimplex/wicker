@@ -101,6 +101,7 @@ end
 local function GetLocalConfigurationTable(self)
 	local key = self:GetConfigurationKey()
 	if key then
+		CONFIGURATION_ROOT[key] = CONFIGURATION_ROOT[key] or {}
 		local tbl = CONFIGURATION_ROOT_PROXY[key]
 		if tbl then
 			return tbl
@@ -161,7 +162,14 @@ function Configurable:GetConfig(...)
 end
 
 
+local exportable_LoadConfiguration
+local function exportable_LoadConfiguration_relayer(...)
+	return exportable_LoadConfiguration(...)
+end
+
 local configuration_env = {
+	LoadConfiguration = exportable_LoadConfiguration_relayer,
+
 	TUNING = TUNING,
 	STRINGS = STRINGS,
 	Point = Point,
@@ -189,6 +197,10 @@ local configuration_env = {
 local loaded_funcs = setmetatable({}, {__mode = "k"})
 local loaded_files = {}
 
+
+local LoadConfiguration
+
+
 local function LoadConfigurationFunction(root, cfg, name)
 	local schema = modrequire 'rc.schema'
 
@@ -199,6 +211,7 @@ local function LoadConfigurationFunction(root, cfg, name)
 
 
 	local tmpenv = Lambda.Map(Lambda.Identity, pairs(configuration_env))
+	tmpenv.LoadConfiguration = Lambda.BindFirst(LoadConfiguration, root)
 
 	
 	local new_options = setmetatable({}, {__index = root})
@@ -298,56 +311,11 @@ local function LoadConfigurationFile(root, fname)
 	return LoadConfigurationFunction( root, cfg, fname )
 end
 
---[[
-local configuration_errors = {}
-
-local function put_error(msg)
-	table.insert(configuration_errors, msg)
-
-	local error_buttons = {
-		{text=STRINGS.UI.MAINSCREEN.SCRIPTERRORQUIT, cb = function() _G.TheSim:ForceAbort() end},
-	}
-
-	local thread = modenv and modenv.modinfo and modenv.modinfo.forumthread
-	if Pred.IsString(thread) and not thread:match("^%s*$") then
-		table.insert(error_buttons, {text="Mod Page", nopop=true, cb = function() _G.VisitURL(("http://forums.kleientertainment.com/index.php?%s"):format(thread)) end })
-	end
-
-	if VarExists("TheFrontEnd") then
-		print "TheFrontEnd exists!"
-		_G.TheFrontEnd:PopScreen()
-		_G.TheFrontEnd:DisplayError(ScriptErrorScreen(
-			"Mod configuration error", 
-			msg,
-			error_buttons,
-			_G.ANCHOR_LEFT,
-			"Please fix these errors and relaunch the game."
-		))
-		_G.Sleep(120)
-	else
-		print "TheFrontEnd does not exist!"
-		TheMod:SilentlyFail()
-	end
-
-	return error(msg)
-end
-
--- The object is discarded. This is a class method in disguise.
-function Configurable:FlushConfigurationErrors()
-	if #configuration_errors > 0 and VarExists("TheFrontEnd") then
-		put_error(table.concat(configuration_errors, "\n"))
-	end
-end
-]]--
-
 local function put_error(msg)
 	return error(msg, 0)
 end
 
--- The object is discarded. This is a class method in disguise.
-function Configurable:LoadConfiguration(what, description)
-	cfgcheck(self)
-
+LoadConfiguration = function(root, what, description)
 	local loader
 
 	if type(what) == "function" then
@@ -361,6 +329,12 @@ function Configurable:LoadConfiguration(what, description)
 	local status, err = pcall(loader, GetConfigurationTable(self), what, description)
 
 	if not status then put_error(err) end
+end
+
+-- The object is discarded. This is a class method in disguise.
+function Configurable:LoadConfiguration(what, description)
+	cfgcheck(self)
+	return LoadConfiguration(GetConfigurationTable(self), what, description)
 end
 
 
