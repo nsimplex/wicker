@@ -269,8 +269,12 @@ local function LoadConfigurationFunction(root, cfg, name)
 	end
 
 	for k in pairs(indexed_fields) do
-		root[k] = root[k] or {}
-		Tree.InjectInto(root[k], new_options[k])
+		if Pred.IsTable(new_options[k]) and not Pred.IsObject(new_options[k]) then
+			root[k] = root[k] or {}
+			Tree.InjectInto(root[k], new_options[k])
+		else
+			root[k] = new_options[k]
+		end
 	end
 end
 
