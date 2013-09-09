@@ -84,7 +84,7 @@ Tree.WeakNew = Tree.NewWeak
 
 Tree.IsAbstractTree = Lambda.Compose( Lambda.Getter {[tree_meta] = true, [weak_tree_meta] = true}, getmetatable )
 
-Tree.IsTree = Pred.IsTable
+Tree.IsTree = Lambda.And( Pred.IsTable, Lambda.Not(Pred.IsObject) )
 Pred.IsTree = Tree.IsTree
 
 -- There are no empty trees with this implementation.
@@ -202,11 +202,14 @@ end
 
 
 --[[
--- Conditionally injects a tree T into a table t through its dfs postorder.
+-- Conditionally injects a tree T into a table t through its dfs postorder*.
 -- The tree T may be a metatable-less table, as long as its actually a tree.
 --
 -- I think this should be in dfs, as part of a more general set of algorithms,
 -- but for now it's here (and if it's ever moved, it should be aliased here).
+--
+-- * But the predicate is applied in preorder. I need to rethink what would be
+-- the best way to structure this.
 --]]
 function Tree.InjectIntoIf(p, t, T)
 	for k, v in pairs(T) do

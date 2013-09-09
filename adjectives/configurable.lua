@@ -79,7 +79,8 @@ local make_ro_proxy, ro_error = (function()
 end)()
 
 
-local CONFIGURATION_ROOT_PROXY = make_ro_proxy(CONFIGURATION_ROOT)
+--local CONFIGURATION_ROOT_PROXY = make_ro_proxy(CONFIGURATION_ROOT)
+local CONFIGURATION_ROOT_PROXY = CONFIGURATION_ROOT
 
 
 -- The object is discarded. This is a class method in disguise.
@@ -125,7 +126,9 @@ local get_virtual_configuration_table = (function()
 			end
 		end,
 
-		__newindex = ro_error,
+		__newindex = function(t, k, v)
+			t[meta][k] = v	
+		end,
 	}
 
 	return function(self)
@@ -134,7 +137,9 @@ local get_virtual_configuration_table = (function()
 		local vt = vtables[cfgtable]
 
 		if not vt then
-			vt = setmetatable({[meta] = make_ro_proxy(cfgtable)}, meta)
+			--local cfgtable_proxy = make_ro_proxy(cfgtable)
+			local cfgtable_proxy = cfgtable
+			vt = setmetatable({[meta] = cfgtable_proxy}, meta)
 			vtables[cfgtable] = vt
 		end
 
