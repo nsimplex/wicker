@@ -16,6 +16,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 
+---
+-- @description Implements a Debuggable class, to be used as a superclass in inheritance.
+--
+-- The Debuggable class inherits from Configurable.
+-- Instead of the traditional "verbosity level" approach, a layered, object-oriented
+-- approach to togglable verbosity is used:
+-- <ol>
+-- <li> If the object has a non-nil debug flag set through SetDebugFlag, it is used; </li>
+-- <li> Otherwise, if the object's class has a non-nil _DEBUG field, it is used; </li>
+-- <li> Otherwise, self:GetConfig("DEBUG") is used. </li>
+-- </ol>
 --@@ENVIRONMENT BOOTUP
 local _modname = assert( (assert(..., 'This file should be loaded through require.')):match('^[%a_][%w_%s]*') , 'Invalid path.' )
 module( ..., require(_modname .. '.booter') )
@@ -33,6 +44,11 @@ local Configurable = wickerrequire 'gadgets.configurable'
 
 local Debuggable
 
+
+---
+-- @description The Debuggable class. Inherits from Configurable.
+--
+-- @class table
 Debuggable = Class(Configurable, function(self, prefix, show_inst)
 	Configurable._ctor(self)
 
@@ -53,20 +69,36 @@ Debuggable = Class(Configurable, function(self, prefix, show_inst)
 
 	local Notifier, Sayer = io.NewNotifier(prefix, 1)
 
+	---
+	-- Prints a message with source file/line number information.
+	--
+	-- @name Debuggable:Notify
 	function self:Notify(...)
 		Notifier(...)
 	end
 
+	---
+	-- Prints a message directly.
+	--
+	-- @name Debuggable:Say
 	function self:Say(...)
 		Sayer(...)
 	end
 
 	local debug_flag = nil
 
+	---
+	-- Returns the debug flag.
+	--
+	-- @name Debuggable:GetDebugFlag
 	function self:GetDebugFlag()
 		return debug_flag
 	end
 
+	---
+	-- Sets the debug flag.
+	--
+	-- @name Debuggable:SetDebugFlag
 	function self:SetDebugFlag(v)
 		debug_flag = v
 		return v
@@ -75,12 +107,16 @@ end)
 
 Pred.IsDebuggable = Pred.IsInstanceOf(Debuggable)
 
+---
+-- Alias of SetDebugFlag.
 function Debuggable:SetDebugging(b)
 	self:SetDebugFlag(b)
 end
 
 Debuggable.SetDebug = Debuggable.SetDebugging
 
+---
+-- Returns whether the object is debugging, according to the layered logic.
 function Debuggable:IsDebugging()
 	if self:GetDebugFlag() ~= nil then
 		return self:GetDebugFlag() and true or false
@@ -102,16 +138,22 @@ function Debuggable:DisableDebugging()
 	self:SetDebugging(false)
 end
 
+---
+-- Removes the object's debug flag.
 function Debuggable:DefaultDebugging()
 	self:SetDebugging(nil)
 end
 
+---
+-- Calls Debuggable:Notify() if debugging.
 function Debuggable:DebugNotify(...)
 	if self:IsDebugging() then
 		self:Notify(...)
 	end
 end
 
+---
+-- Calls Debuggable:Say() if debugging.
 function Debuggable:DebugSay(...)
 	if self:IsDebugging() then
 		self:Say(...)

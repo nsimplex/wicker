@@ -15,6 +15,19 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
+---
+-- @description A configurable class, to be inherited from.
+--
+-- Configurations are stored in a master table. Additionally, each Configurable
+-- object may have a key defining a subtable within the master one for its own
+-- configurations. That key is represented by a sequence of 0 or more values,
+-- k1, k2, ..., such that if C is the master table, its configurations are
+-- relative to C[k1][k2][...].
+-- <br /><br />
+-- When an object has a key, if a particular configuration value doesn't exist
+-- in its subtable, but it exists in the master table, the "master" value is
+-- returned instead (so that the local configuration table "inherits" from the
+-- master one in some sense).
 --@@ENVIRONMENT BOOTUP
 local _modname = assert( (assert(..., 'This file should be loaded through require.')):match('^[%a_][%w_%s]*') , 'Invalid path.' )
 module( ..., require(_modname .. '.booter') )
@@ -31,16 +44,12 @@ local Tree = wickerrequire 'utils.table.tree'
 --local FunctionQueue = wickerrequire 'gadgets.functionqueue'
 
 
-local ScriptErrorScreen = require "screens/scripterrorscreen"
-if not Pred.IsTable(ScriptErrorScreen) then
-		ScriptErrorScreen = assert( _G.ScriptErrorScreen )
-end
-
-
-local Configurable = Class(function(self, key)
-	if key ~= nil then
-		self:SetConfigurationKey(key)
-	end
+---
+-- Configurable class.
+--
+-- @class table
+local Configurable = Class(function(self, ...)
+	self:SetConfigurationKey(...)
 end)
 
 Pred.IsConfigurable = Pred.IsInstanceOf(Configurable)
@@ -85,29 +94,47 @@ end)()
 local CONFIGURATION_ROOT_PROXY = CONFIGURATION_ROOT
 
 
+---
+-- @description Adds an alias to the master configuration table.
+--
+-- TUNING[alias] shall be set to the master table.
+-- <br />
 -- The object is discarded. This is a class method in disguise.
 function Configurable:AddMasterConfigurationKey(alias)
+	cfgcheck(self)
 	TUNING[alias] = CONFIGURATION_ROOT_PROXY
 end
 
+---
+-- @description Returns the configuration key, as an array (table) of its pieces.
 function Configurable:GetConfigurationKey()
 	cfgcheck(self)
 	return self[CONFIGURATION_ROOT_PROXY]
 end
 
-function Configurable:SetConfigurationKey(k)
+---
+-- @description Sets the configuration key.
+function Configurable:SetConfigurationKey(...)
 	cfgcheck(self)
-	self[CONFIGURATION_ROOT_PROXY] = k
+
+	local key = {...}
+	if #key > 0 then
+		self[CONFIGURATION_ROOT_PROXY] = key
+	else
+		self[CONFIGURATION_ROOT_PROXY] = nil
+	end
 end
 
 local function GetLocalConfigurationTable(self)
 	local key = self:GetConfigurationKey()
 	if key then
-		CONFIGURATION_ROOT[key] = CONFIGURATION_ROOT[key] or {}
-		local tbl = CONFIGURATION_ROOT_PROXY[key]
-		if tbl then
-			return tbl
+		local tbl = CONFIGURATION_ROOT
+		for _, k in ipairs(key) do
+			tbl[k] = tbl[k] or {}
+			tbl = tbl[k]
+			assert( Pred.IsTable(tbl) )
 		end
+		return tbl
 	end
 end
 
@@ -150,6 +177,12 @@ local get_virtual_configuration_table = (function()
 	end
 end)()
 
+---
+-- @description Returns the configuration obtained by successive indexing of
+-- the local/master table using the arguments as keys.
+--
+-- @return The configuration value or subtable. If some intermediate table
+-- doesn't exist, returns nil.
 function Configurable:GetConfig(...)
 	cfgcheck(self)
 
@@ -164,14 +197,7 @@ function Configurable:GetConfig(...)
 end
 
 
-local exportable_LoadConfiguration
-local function exportable_LoadConfiguration_relayer(...)
-	return exportable_LoadConfiguration(...)
-end
-
 local configuration_env = {
-	LoadConfiguration = exportable_LoadConfiguration_relayer,
-
 	TUNING = TUNING,
 	STRINGS = STRINGS,
 	Point = Point,
@@ -333,6 +359,18 @@ LoadConfiguration = function(root, what, description)
 	if not status then put_error(err) end
 end
 
+---
+-- @description Loads a configuration file or function into the configuration
+-- table of the calling object (which is the master one if it doesn't have a
+-- key).
+--
+-- @param what A file name or a function. If it is a function, it's body is
+-- treated as a configuration file.
+--
+-- @param description A description for the parameter `what', used in error
+-- messages. When `what' is a file name, it is ignored, with the file name
+-- itself being used instead.
+--
 -- The object is discarded. This is a class method in disguise.
 function Configurable:LoadConfiguration(what, description)
 	cfgcheck(self)
