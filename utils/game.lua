@@ -31,6 +31,7 @@ local Logic = wickerrequire 'paradigms.logic'
 
 local Pred = wickerrequire 'lib.predicates'
 
+
 function ToPoint(x, y, z)
 	if y then
 		x = Point(x, y, z)
@@ -44,6 +45,7 @@ function ToPoint(x, y, z)
 
 	return x
 end
+
 
 function FindAllEntities(center, radius, fn, tags)
 	center = ToPoint(center)
@@ -65,6 +67,38 @@ function FindSomeEntity(center, radius, fn, tags)
 	)
 end
 
+function FindRandomEntity(center, radius, fn, tags)
+	local E = FindAllEntities(center, radius, fn, tags)
+	if #E > 0 then
+		return E[math.random(#E)]
+	end
+end
+GetRandomEntity = FindRandomEntity
+RandomlyFindEntity = FindRandomEntity
+RandomlyGetEntity = FindRandomEntity
+
+function FindClosestEntity(center, radius, fn, tags)
+	center = ToPoint(center)
+
+	--[[
+	-- Local minimum is of the form {inst, distance_square}
+	--]]
+	local function folder(inst, local_minimum)
+		local d2 = distsq(center, inst)
+		if not local_minimum or d2 < local_minimum[2] then
+			return {inst, d2}
+		else
+			return local_minimum
+		end
+	end
+
+	local result = Lambda.Fold( folder, ipairs(FindAllEntities(center, radius, fn, tags)) )
+
+	return result and result[1]
+end
+GetClosestEntity = FindClosestEntity
+
+
 function ListenForEventOnce(inst, event, fn, source)
 	-- Currently, inst2 == source, but I don't want to make that assumption.
 	local function gn(inst2, data)
@@ -74,5 +108,6 @@ function ListenForEventOnce(inst, event, fn, source)
 	
 	return inst:ListenForEvent(event, gn, source)
 end
+
 
 return _M

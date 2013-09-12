@@ -23,6 +23,8 @@ module( ..., require(_modname .. '.booter') )
 --@@END ENVIRONMENT BOOTUP
 
 
+local Lambda = wickerrequire 'paradigms.functional'
+
 BindWickerModule 'paradigms.logic'
 
 
@@ -31,6 +33,7 @@ require 'entityscript'
 
 IsWorldgen = assert( IsWorldgen )
 IsWorldGen = assert( IsWorldGen )
+
 
 function Less(a, b)
 	return a < b
@@ -44,6 +47,7 @@ Greater = LambdaNot(LessOrEqual)
 
 GreaterOrEqual = LambdaNot(Less)
 
+
 function IsType(t)
 	return function(x)
 		return type(x) == t
@@ -55,7 +59,8 @@ IsNumber = IsType "number"
 IsBoolean = IsType "boolean"
 IsString = IsType "string"
 IsTable = IsType "table"
-IsNil = IsType "nil"
+IsNil = Lambda.IsNil
+
 
 function IsPrivate(x)
 	return x:match('^_')
@@ -66,6 +71,7 @@ IsPublic = LambdaNot(IsPrivate)
 for _, access in ipairs {'Private', 'Public'} do
 	_M['Is' .. access .. 'String'] = LambdaAnd( IsString, _M['Is' .. access] )
 end
+
 
 function IsPositive(x)
 	return x > 0
@@ -93,6 +99,7 @@ end
 
 IsProbability = LambdaAnd( IsNumber, IsInClosedRange(0, 1) )
 
+
 function IsObject(x)
 	return type(x) == "table" and getmetatable(x) and x.is_a
 end
@@ -117,6 +124,7 @@ end
 
 IsTypeOf = IsClassOf
 
+
 function HasMetaMethod(method)
 	local mname = '__' .. method
 	return function(x)
@@ -124,6 +132,7 @@ function HasMetaMethod(method)
 		return m and m[mname]
 	end
 end
+
 
 IsCallable = LambdaOr( IsFunction, HasMetaMethod("call") )
 
@@ -139,19 +148,31 @@ IsEntityScript = IsInstanceOf(EntityScript)
 IsVector3 = IsInstanceOf(Vector3)
 IsPoint = IsInstanceOf(Point)
 
+
+function IsValidGround(tile)
+	return tile and not ( tile == GROUND.IMPASSABLE or tile >= GROUND.UNDERGROUND)
+end
+
 function IsValidPoint(pt)
-	local tile = GetGroundTypeAtPosition(pt)
-	return not ( tile == GROUND.IMPASSABLE or tile >= GROUND.UNDERGROUND )
+	return IsValidGround( GetGroundTypeAtPosition(pt) )
+end
+
+
+function IsValid(inst)
+	return inst:IsValid()
 end
 
 function IsOk(inst)
 	return inst:IsValid() and not inst:IsInLimbo()
 end
 
+IsValidEntity = LambdaAnd( IsEntityScript, IsValid )
 IsOkEntity = LambdaAnd( IsEntityScript, IsOk )
+
 
 if not IsWorldgen() then
 	PrefabExists = _G.PrefabExists
 end
+
 
 return _M
