@@ -1,7 +1,7 @@
 -----
 --[[ Wicker ]] VERSION="1.0"
 --
--- Last updated: 2013-08-06
+-- Last updated: 2013-09-13
 -----
 
 --[[
