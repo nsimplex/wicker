@@ -38,11 +38,12 @@ local _modname = assert( (assert(..., 'This file should be loaded through requir
 
 
 module(...)
+_PACKAGE = _PACKAGE:gsub("%.+$", "")
 
 
-local core_bootstrapper = require(_modname .. '.wicker.api.core')
+local core_bootstrapper = require(_PACKAGE .. '.api.core')
 assert( type(core_bootstrapper) == "function" )
-local booter = core_bootstrapper(_PACKAGE:gsub("%.+$", ""))
+local booter = core_bootstrapper(_PACKAGE)
 assert( type(booter) == "function" )
 core_bootstrapper = nil
 

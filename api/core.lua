@@ -69,25 +69,24 @@ function AddToCore(k, v)
 end
 
 
-do
+VarExists = (function()
 	local function indextable(t, k)
 		return t[k]
 	end
 
-	function VarExists(name, env)
+	return function(name, env)
 		env = env or _G
 
 		local status, val = pcall(indextable, env, name)
 
 		return status and val ~= nil
 	end
-end
+end)()
 
 
 function IsWorldgen()
 	return rawget(_G, "SEED") ~= nil
 end
-
 IsWorldGen = IsWorldgen
 
 
