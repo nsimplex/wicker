@@ -1,5 +1,5 @@
 -----
---[[ Wicker ]] VERSION="1.0"
+--[[ Wicker ]] VERSION="2.0"
 --
 -- Last updated: 2013-09-13
 -----
