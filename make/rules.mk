@@ -54,7 +54,7 @@ wicker:
 	-git subtree pull --prefix $(TOOLS_DIR) https://github.com/nsimplex/wickertools.git master --squash
 
 boot: $(TOOLS_DIR)/bootup_gen.pl
-	find "$(SCRIPT_DIR)" -type f -name '*.lua' -exec perl "$<" '{}' \;
+	find "$(SCRIPT_DIR)" -type f -name '*.lua' -exec perl "$<" '{}' global \;
 
 touch: modinfo.lua modmain.lua $(THEMAIN)
 

@@ -62,10 +62,12 @@ local _M = _M
 _M._modname = _modname
 
 
-function AddToCore(k, v)
-	if _M[k] == nil then
-		_M[k] = v
-	end
+local function SetWickerBooter(booter)
+	package.loaded[_modname .. '.wicker.booter'] = booter
+end
+
+local function SetModBooter(booter)
+	package.loaded[_modname .. '.booter'] = booter
 end
 
 
@@ -673,9 +675,17 @@ local function raw_bootstrapper(wicker_stem)
 		return assert( loadmodfile(fname) )()
 	end
 	
+
+	function RegisterModEnvironment(E)
+		SetModBooter(function(env)
+			return BindTable(env, E)
+		end)
+	end
+
 	
 	package.loaded[_NAME] = BindTheCore
-	package.loaded[_modname .. '.booter'] = BindTheCore
+	SetWickerBooter(BindTheCode)
+	SetModBooter(BindTheCore)
 	return BindTheCore
 end
 

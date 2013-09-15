@@ -25,4 +25,4 @@ init.lua: tools/touch_modmain.pl
 	perl -i $< $@
 
 boot: tools/bootup_gen.pl
-	find . -type f -name '*.lua' -exec perl $< '{}' \;
+	find . -type f -name '*.lua' -exec perl $< '{}' wicker \;
