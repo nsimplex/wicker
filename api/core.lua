@@ -684,7 +684,7 @@ local function raw_bootstrapper(wicker_stem)
 
 	
 	package.loaded[_NAME] = BindTheCore
-	SetWickerBooter(BindTheCode)
+	SetWickerBooter(BindTheCore)
 	SetModBooter(BindTheCore)
 	return BindTheCore
 end
