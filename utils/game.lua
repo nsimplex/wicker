@@ -84,7 +84,7 @@ function FindClosestEntity(center, radius, fn, tags)
 	-- Local minimum is of the form {inst, distance_square}
 	--]]
 	local function folder(inst, local_minimum)
-		local d2 = distsq(center, inst)
+		local d2 = distsq(center, inst:GetPosition())
 		if not local_minimum or d2 < local_minimum[2] then
 			return {inst, d2}
 		else
