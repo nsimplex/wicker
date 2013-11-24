@@ -45,6 +45,17 @@ function ToPoint(x, y, z)
 
 	return x
 end
+local ToPoint = ToPoint
+
+function Move(inst, x, y, z)
+	local pt = ToPoint(x, y, z)
+
+	if inst.Physics then
+		inst.Physics:Teleport( pt:Get() )
+	elseif inst.Transform then
+		inst.Transform:SetPosition( pt:Get() )
+	end
+end
 
 
 function FindAllEntities(center, radius, fn, and_tags, not_tags, or_tags)
