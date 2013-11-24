@@ -29,6 +29,7 @@ Connectives = {
 	{name = 'Not', arity = 1},
 	{name = 'Or', arity = 2},
 	{name = 'And', arity = 2},
+	{name = 'Xor', arity = 2},
 	{name = 'Implies', arity = 2},
 	{name = 'IfAndOnlyIf', arity = 2},
 }
@@ -55,6 +56,10 @@ end
 
 function And(p, q)
 	return p and q
+end
+
+function Xor(p, q)
+	return (p or q) and not (p and q)
 end
 
 function Implies(p, q)
@@ -96,14 +101,19 @@ function LambdaBinaryOr(p, q)
 	end
 end
 
+function LambdaXor(p, q)
+	return function(...)
+		return Xor(p(...), q(...))
+	end
+end
+
 function LambdaImplies(p, q)
 	return LambdaBinaryOr( LambdaNot(p), q )
 end
 
 function LambdaIfAndOnlyIf(p, q)
 	return function(...)
-		local pv, qv = p(...), q(...)
-		return IfAndOnlyIf(pv, qv)
+		return IfAndOnlyIf(p(...), q(...))
 	end
 end
 
