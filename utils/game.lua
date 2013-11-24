@@ -47,28 +47,28 @@ function ToPoint(x, y, z)
 end
 
 
-function FindAllEntities(center, radius, fn, tags)
+function FindAllEntities(center, radius, fn, and_tags, not_tags, or_tags)
 	center = ToPoint(center)
 	return Lambda.CompactlyFilter(
 		function(v)
 			return Pred.IsOk(v) and (not fn or fn(v))
 		end,
-		ipairs(TheSim:FindEntities(center.x, center.y, center.z, radius, tags) or {})
+		ipairs(TheSim:FindEntities(center.x, center.y, center.z, radius, and_tags, not_tags, or_tags) or {})
 	)
 end
 
-function FindSomeEntity(center, radius, fn, tags)
+function FindSomeEntity(center, radius, fn, and_tags, not_tags, or_tags)
 	center = ToPoint(center)
 	return Lambda.Find(
 		function(v)
 			return Pred.IsOk(v) and (not fn or fn(v))
 		end,
-		ipairs(TheSim:FindEntities(center.x, center.y, center.z, radius, tags) or {})
+		ipairs(TheSim:FindEntities(center.x, center.y, center.z, radius, and_tags, not_tags, or_tags) or {})
 	)
 end
 
-function FindRandomEntity(center, radius, fn, tags)
-	local E = FindAllEntities(center, radius, fn, tags)
+function FindRandomEntity(center, radius, fn, and_tags, not_tags, or_tags)
+	local E = FindAllEntities(center, radius, fn, and_tags, not_tags, or_tags)
 	if #E > 0 then
 		return E[math.random(#E)]
 	end
@@ -77,7 +77,7 @@ GetRandomEntity = FindRandomEntity
 RandomlyFindEntity = FindRandomEntity
 RandomlyGetEntity = FindRandomEntity
 
-function FindClosestEntity(center, radius, fn, tags)
+function FindClosestEntity(center, radius, fn, and_tags, not_tags, or_tags)
 	center = ToPoint(center)
 
 	--[[
@@ -92,7 +92,7 @@ function FindClosestEntity(center, radius, fn, tags)
 		end
 	end
 
-	local result = Lambda.Fold( folder, ipairs(FindAllEntities(center, radius, fn, tags)) )
+	local result = Lambda.Fold( folder, ipairs(FindAllEntities(center, radius, fn, and_tags, not_tags, or_tags)) )
 
 	return result and result[1]
 end

@@ -154,9 +154,26 @@ function IsValidGround(tile)
 end
 
 function IsValidPoint(pt)
-	return IsValidGround( GetGroundTypeAtPosition(pt) )
+	return IsValidGround(GetGroundTypeAtPosition( wickerrequire('utils.game').ToPoint(pt) ))
 end
 
+IsUnblockedPoint = (function()
+	local not_tags = {'NOBLOCK', 'player', 'FX', "INLIMBO", "DECOR"}
+
+	return function(pt, blocking_radius)
+		if IsValidPoint(pt) then
+			return not wickerrequire('utils.game').FindSomeEntity(
+				pt,
+				blocking_radius,
+				function(inst)
+					return inst.parent == nil and not inst.components.placer and not rawequal(inst, pt)
+				end,
+				nil,
+				not_tags
+			)
+		end
+	end
+end)()
 
 function IsValid(inst)
 	return inst:IsValid()
