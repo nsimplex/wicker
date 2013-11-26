@@ -129,9 +129,16 @@ function IfThenElse(If, Then, Else)
 end
 
 
-function FirstOf(x) -- (x, ...)
+function Head(x) -- (x, ...)
 	return x
 end
+
+function Tail(x, ...)
+	return ...
+end
+
+
+FirstOf = Head
 
 function SecondOf(x, y)
 	return y
@@ -218,15 +225,59 @@ end
 
 Transpose = Flip
 
-function BindFirst(f, x)
+
+local function BindHead(f, x)
 	return function(...)
 		return f(x, ...)
+	end
+end
+_M.BindHead = BindHead
+
+local function BindTail(f, ...)
+	local Args = {...}
+	return function(x)
+		return f(x, unpack(Args))
+	end
+end
+_M.BindTail = BindTail
+
+
+BindFirst = BindHead
+
+function BindSecond(f, y)
+	return function(f, x, ...)
+		return f(x, y, ...)
+	end
+end
+
+function BindThird(f, z)
+	return function(f, x, y, ...)
+		return f(x, y, z, ...)
 	end
 end
 
 function BindLast(f, x)
 	return function(...)
 		return f(Append(x, ...))
+	end
+end
+
+
+local function Curry(f, n)
+	if n <= 0 then return f end
+	return function(x)
+		return Curry( BindHead(f, x), n - 1 )
+	end
+end
+_M.Curry = Curry
+
+function Uncurry(f)
+	return function(...)
+		local g = f
+		for _, x in ipairs{...} do
+			g = g(x)
+		end
+		return g
 	end
 end
 
@@ -358,7 +409,7 @@ end
 for _, pre in ipairs {'Raw', ''} do
 	local primitive = assert( Iterator[pre .. 'Compose'] )
 	Iterator[pre .. 'ComposeTo'] = function(g)
-		return Lambda.BindFirst( primitive, g )
+		return Lambda.BindHead( primitive, g )
 	end
 end
 
@@ -673,7 +724,7 @@ function GenerateConceptsFromApplying(Apply, ret)
 		assert( Lambda.IsFunctional(into_filter) )
 
 		ret[output_mode .. 'InjectIntoIf'] = into_filter
-		ret[output_mode .. 'InjectInto'] = Lambda.BindFirst( into_filter, Lambda.True )
+		ret[output_mode .. 'InjectInto'] = Lambda.BindHead( into_filter, Lambda.True )
 	end
 	local Map = ret.Map
 	local CompactlyMap = ret.CompactlyMap
