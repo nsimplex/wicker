@@ -27,9 +27,9 @@ ifndef ICON_DIR
  endif
 endif
 
-ifndef TOOLS_DIR
- $(info TOOLS_DIR is not defined, defaulting to `tools')
- TOOLS_DIR:=tools
+ifndef WICKER_TOOLS_DIR
+ $(info WICKER_TOOLS_DIR is not defined, defaulting to `tools')
+ WICKER_TOOLS_DIR:=tools
 endif
 
 

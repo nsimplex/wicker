@@ -6,8 +6,8 @@ endif
 ifndef SCRIPT_DIR
  $(error SCRIPT_DIR is not defined)
 endif
-ifndef TOOLS_DIR
- $(error TOOLS_DIR is not defined)
+ifndef WICKER_TOOLS_DIR
+ $(error WICKER_TOOLS_DIR is not defined)
 endif
 ifndef THEMAIN
  $(error THEMAIN is not defined)
@@ -62,19 +62,19 @@ post: $(WICKER_GENERATED_POST_FILES)
 modinfo.lua:
 	echo "$$MOD_INFO" > $@
 
-modmain.lua: $(TOOLS_DIR)/touch_modmain.pl
+modmain.lua: $(WICKER_TOOLS_DIR)/touch_modmain.pl
 	perl -i $< $@
 
-$(THEMAIN): $(TOOLS_DIR)/touch_modmain.pl
+$(THEMAIN): $(WICKER_TOOLS_DIR)/touch_modmain.pl
 	perl -i $< $@
 
-rc.lua: $(TOOLS_DIR)/rc_gen.pl rc.template.lua
+rc.lua: $(WICKER_TOOLS_DIR)/rc_gen.pl rc.template.lua
 	$< rc < rc.template.lua > rc.lua
 
-$(SCRIPT_DIR)/rc/defaults.lua: $(TOOLS_DIR)/rc_gen.pl rc.template.lua
+$(SCRIPT_DIR)/rc/defaults.lua: $(WICKER_TOOLS_DIR)/rc_gen.pl rc.template.lua
 	$< rc.defaults < rc.template.lua > $(SCRIPT_DIR)/rc/defaults.lua
 
-rc.example.lua: $(TOOLS_DIR)/rc_gen.pl rc.template.lua
+rc.example.lua: $(WICKER_TOOLS_DIR)/rc_gen.pl rc.template.lua
 	$< rc.example < rc.template.lua > rc.example.lua
 
 scripts/prefabs/%.lua:
@@ -93,10 +93,10 @@ scripts/brains/%.lua:
 	mkdir -p $(@D)
 	echo "return require('$(PROJECT_lc).' .. (...))" > $@
 
-Post.discussion: $(TOOLS_DIR)/postman.pl Post.template rc.example.lua
+Post.discussion: $(WICKER_TOOLS_DIR)/postman.pl Post.template rc.example.lua
 	$< discussion < Post.template > $@
 
-Post.upload: $(TOOLS_DIR)/postman.pl Post.template rc.example.lua
+Post.upload: $(WICKER_TOOLS_DIR)/postman.pl Post.template rc.example.lua
 	$< upload < Post.template > $@
 
 
