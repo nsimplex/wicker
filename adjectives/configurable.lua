@@ -242,7 +242,17 @@ local function LoadConfigurationFunction(root, cfg, name)
 	tmpenv.LoadConfiguration = Lambda.BindFirst(LoadConfiguration, root)
 
 	
-	local new_options = setmetatable({}, {__index = root})
+	local new_options = setmetatable({}, {__index = function(t, k)
+		local v = root[k]
+		if v then
+			if Pred.IsTable(v) then
+				t[k] = Tree()
+				Tree.InjectInto(t[k], v)
+				return t[k]
+			end
+			return v
+		end
+	end})
 
 	local indexed_fields = {}
 
