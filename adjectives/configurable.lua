@@ -189,7 +189,7 @@ function Configurable:GetConfig(...)
 	local cfgtable = get_virtual_configuration_table(self)
 
 	for i, v in ipairs{...} do
-		if not type(cfgtable) == "table" then return end
+		if type(cfgtable) ~= "table" then return end
 		cfgtable = cfgtable[v]
 	end
 
@@ -250,8 +250,10 @@ local function LoadConfigurationFunction(root, cfg, name)
 		__index = function(t, k)
 			if Pred.IsPublicString(k) then
 				indexed_fields[k] = true
+				if new_options[k] == nil then
+					new_options[k] = Tree()
+				end
 			end
-			new_options[k] = new_options[k] ~= nil and new_options[k] or Tree()
 			return new_options[k]
 		end,
 
@@ -315,7 +317,7 @@ local function LoadConfigurationFunction(root, cfg, name)
 	end
 
 	for k in pairs(indexed_fields) do
-		if Pred.IsTable(new_options[k]) and not Pred.IsObject(new_options[k]) then
+		if Pred.IsTable(new_options[k]) and (Tree.IsAbstractTree(new_options[k]) or not Pred.IsObject(new_options[k])) then
 			root[k] = root[k] or {}
 			Tree.InjectIntoIf(
 				Lambda.Not( Lambda.And(Tree.IsAbstractTree, Tree.IsLeaf) ),
