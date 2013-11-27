@@ -49,13 +49,6 @@ $(info Setting up targets...)
 
 dist: $(PROJECT_ZIP) $(WICKER_GENERATED_FILES)
 
-wicker:
-	-git subtree pull --prefix $(SCRIPT_DIR)/wicker https://github.com/nsimplex/wicker.git master --squash
-	-git subtree pull --prefix $(TOOLS_DIR) https://github.com/nsimplex/wickertools.git master --squash
-
-boot: $(TOOLS_DIR)/bootup_gen.pl
-	find "$(SCRIPT_DIR)" -type f -name '*.lua' -exec perl "$<" '{}' global \;
-
 touch: modinfo.lua modmain.lua $(THEMAIN)
 
 rc: $(WICKER_GENERATED_CONFIGURATION_FILES)
@@ -126,6 +119,8 @@ clean:
 count: $(sort $(filter-out $(LICENSE_FILES), $(WICKER_PROJECT_FILES)))
 	@(for i in $^; do [[ "$$(file -bi "$$i")" =~ "text/" ]] && wc -l $$i; done) | sort -s -g | perl -e '$$t = 0; while($$l = <>){ $$t += $$l; print $$l; } print "Total: $$t\n";'
 
+
+include $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))/utils.mk
 
 
 $(info Finished wicker Makefile rules set.)
