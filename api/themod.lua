@@ -29,6 +29,9 @@ local Debuggable = wickerrequire 'gadgets.debuggable'
 local FunctionQueue = wickerrequire 'gadgets.functionqueue'
 
 
+local PrefabCompiler = modrequire 'api.prefab_compiler'
+
+
 -- Key, used as an index to a Mod object, leading to a table with a field
 -- 'add', storing the direct Add methods (such as AddLevel) specs, and 
 -- 'hook', storing the AddPostInit and AddPreInit methods specs.
@@ -124,6 +127,10 @@ local Mod = Class(Debuggable, function(self)
 
 		ran_set[mainname] = true
 		postruns(mainname, ...)
+
+		if modenv.PrefabFiles then
+			PrefabCompiler(modenv.PrefabFiles)
+		end
 
 		return unpack(Rets)
 	end

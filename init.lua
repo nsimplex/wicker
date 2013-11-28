@@ -83,7 +83,7 @@ local preprocess_boot_params = (function()
 		end
 
 		if type(boot_params.id) ~= "string" then
-			return error("String expected as boot parameter 'id'., 3)
+			return error("String expected as boot parameter 'id'"., 3)
 		end
 
 		if not boot_params.modcode_root:match("[%./\\]$") then
