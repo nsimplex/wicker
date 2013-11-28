@@ -63,6 +63,8 @@ local preprocess_boot_params = (function()
 
 		modcode_root = nil,
 
+		id = nil,
+
 		overwrite_env = true,
 	}
 
@@ -77,7 +79,11 @@ local preprocess_boot_params = (function()
 		end
 
 		if type(boot_params.modcode_root) ~= "string" then
-			return error("String expected as boot parameter modcode_root.", 3)
+			return error("String expected as boot parameter 'modcode_root'.", 3)
+		end
+
+		if type(boot_params.id) ~= "string" then
+			return error("String expected as boot parameter 'id'., 3)
 		end
 
 		if not boot_params.modcode_root:match("[%./\\]$") then

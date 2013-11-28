@@ -19,7 +19,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 return function(primary_booter)
 	local assert = assert
 
+
+	local modrequire = assert( modrequire )
+	local wickerrequire = assert( wickerrequire )
 	local BindTable = assert( BindTable )
+
+
+	local mod_id = assert( GetModId() )
+
+
+	_G.package.loaded[mod_id..".modrequire"] = modrequire
+	_G.package.loaded[mod_id..".wickerrequire"] = wickerrequire
 
 
 	local SetWickerBooter, SetModBooter

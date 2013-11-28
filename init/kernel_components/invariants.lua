@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 return function(boot_params, wicker_stem)
 	local assert = assert
 	local modcode_root = assert( boot_params.modcode_root )
+	local mod_id = assert( boot_params.id )
 
 
 	function AssertEnvironmentValidity(env)
@@ -42,5 +43,9 @@ return function(boot_params, wicker_stem)
 
 	function GetModcodeRoot()
 		return modcode_root
+	end
+
+	function GetModId()
+		return mod_id
 	end
 end
