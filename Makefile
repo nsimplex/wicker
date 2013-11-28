@@ -1,6 +1,6 @@
 PROJECT:=Wicker
 AUTHOR:=simplex
-VERSION:=2.0
+VERSION:=3.0
 
 
 PROJECT_NAME:=$(PROJECT)

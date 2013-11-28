@@ -28,10 +28,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- in its subtable, but it exists in the master table, the "master" value is
 -- returned instead (so that the local configuration table "inherits" from the
 -- master one in some sense).
---@@WICKER ENVIRONMENT BOOTUP
-local _modname = assert( (assert(..., 'This file should be loaded through require.')):match('^[%a_][%w_%s]*') , 'Invalid path.' )
-module( ..., require(_modname .. '.wicker.booter') )
---@@END ENVIRONMENT BOOTUP
 
 
 local Lambda = wickerrequire 'paradigms.functional'

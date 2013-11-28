@@ -2,10 +2,6 @@
 -- @description Implements a discrete Markov Chain over a finite set of states.
 -- @author simplex
 
---@@WICKER ENVIRONMENT BOOTUP
-local _modname = assert( (assert(..., 'This file should be loaded through require.')):match('^[%a_][%w_%s]*') , 'Invalid path.' )
-module( ..., require(_modname .. '.wicker.booter') )
---@@END ENVIRONMENT BOOTUP
 
 
 local Lambda = wickerrequire 'paradigms.functional'

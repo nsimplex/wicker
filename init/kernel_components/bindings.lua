@@ -16,13 +16,43 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 
-InjectModPackage 'table.core'
+return function(primary_booter)
+	local assert = assert
 
-tree = pkgrequire 'table.tree'
-Tree = tree
+	local BindTable = assert( BindTable )
 
 
--- We bind the standard table module, so that this can be used as a replacement.
-BindModule 'table'
+	local SetWickerBooter, SetModBooter
+	do
+		local WickerBooter
+		function GetWickerBooter()
+			return WickerBooter
+		end
 
-return _M
+		local ModBooter
+		function GetModBooter()
+			return ModBooter
+		end
+
+		SetWickerBooter = function(booter)
+			WickerBooter = booter
+		end
+
+		SetModBooter = function(booter)
+			ModBooter = booter
+		end
+	end
+
+
+	function RegisterModEnvironment(E)
+		SetModBooter(function(env)
+			return BindTable(env, E)
+		end)
+	end
+
+	
+	SetWickerBooter(primary_booter)
+	SetModBooter(primary_booter)
+
+	AddVariableCleanup("GetWickerBooter", "GetModBooter")
+end

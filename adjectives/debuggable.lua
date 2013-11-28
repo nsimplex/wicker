@@ -27,10 +27,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- <li> Otherwise, if the object's class has a non-nil _DEBUG field, it is used; </li>
 -- <li> Otherwise, self:GetConfig("DEBUG") is used. </li>
 -- </ol>
---@@WICKER ENVIRONMENT BOOTUP
-local _modname = assert( (assert(..., 'This file should be loaded through require.')):match('^[%a_][%w_%s]*') , 'Invalid path.' )
-module( ..., require(_modname .. '.wicker.booter') )
---@@END ENVIRONMENT BOOTUP
 
 
 local Lambda = wickerrequire 'paradigms.functional'

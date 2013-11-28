@@ -25,10 +25,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
---@@WICKER ENVIRONMENT BOOTUP
-local _modname = assert( (assert(..., 'This file should be loaded through require.')):match('^[%a_][%w_%s]*') , 'Invalid path.' )
-module( ..., require(_modname .. '.wicker.booter') )
---@@END ENVIRONMENT BOOTUP
 
 
 local Lambda = wickerrequire 'paradigms.functional'

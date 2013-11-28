@@ -8,7 +8,7 @@ WICKER_BASE_DIR_SUF:=
 BARE_WICKER_BASE_FILES:=init.lua utils.lua
 
 WICKER_API_DIR_SUF:=api
-BARE_WICKER_API_FILES:=core.lua themod.lua
+BARE_WICKER_API_FILES:=kernel.lua themod.lua
 
 WICKER_UTIL_DIR_SUF:=utils
 BARE_WICKER_UTIL_FILES:=algo.lua game.lua io.lua string.lua table.lua table/core.lua table/tree.lua table/tree/core.lua table/tree/dfs.lua time.lua

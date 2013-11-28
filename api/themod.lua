@@ -17,10 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 local package = package
 
---@@WICKER ENVIRONMENT BOOTUP
-local _modname = assert( (assert(..., 'This file should be loaded through require.')):match('^[%a_][%w_%s]*') , 'Invalid path.' )
-module( ..., require(_modname .. '.wicker.booter') )
---@@END ENVIRONMENT BOOTUP
 
 local Lambda = wickerrequire 'paradigms.functional'
 local Iterator = Lambda.iterator
@@ -393,14 +389,14 @@ for _, when in ipairs{"Pre", "Post"} do
 end
 
 
-return function()
+return function(boot_params)
 	local TheMod = Mod()
 
 	_M.TheMod = TheMod
 
 	Lambda.ConceptualizeSingletonObject( TheMod, _M )
 
-	package.loaded[_NAME] = _M
+	boot_params.package.loaded[_NAME] = _M
 
 	return TheMod
 end

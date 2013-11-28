@@ -17,10 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
---@@WICKER ENVIRONMENT BOOTUP
-local _modname = assert( (assert(..., 'This file should be loaded through require.')):match('^[%a_][%w_%s]*') , 'Invalid path.' )
-module( ..., require(_modname .. '.wicker.booter') )
---@@END ENVIRONMENT BOOTUP
 
 
 local Lambda = wickerrequire 'paradigms.functional'
@@ -31,7 +27,6 @@ BindWickerModule 'paradigms.logic'
 require 'entityscript'
 
 
-IsWorldgen = assert( IsWorldgen )
 IsWorldGen = assert( IsWorldGen )
 
 

@@ -16,19 +16,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 
-function AddSaveIndexPostInit(fn)
-	require 'saveindex'
+return function(boot_params, wicker_stem)
+	local assert = assert
+	local modcode_root = assert( boot_params.modcode_root )
 
-	AddGlobalClassPostConstruct("saveindex", "SaveIndex", fn)
 
-	local instance = rawget(_G, "SaveGameIndex")
-	if instance then
-		fn(instance)
+	function AssertEnvironmentValidity(env)
+		assert( env.GetModKey == nil or env.GetModKey() == GetModKey(), env._NAME )
+		assert( env.TheMod == nil or _M.TheMod == nil or env.TheMod == _M.TheMod, env._NAME )
+		assert( modenv == nil or env.modname == nil or env.modname == modenv.modname, env._NAME )
+	end
+
+
+	-- Returns a unique key.
+	GetModKey = (function()
+		local k = {}
+		return function()
+			return k
+		end
+	end)()
+
+	function GetWickerStem()
+		return wicker_stem
+	end
+
+	function GetModcodeRoot()
+		return modcode_root
 	end
 end
-
-
-TheMod:EmbedHook("SaveIndex", AddSaveIndexPostInit, "post")
-
-
-return AddSaveIndexPostInit
