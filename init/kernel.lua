@@ -29,7 +29,7 @@ local _NAME = ...
 -- The counterpart to it is the init.lua file, which manages its
 -- stepwise execution.
 --]]
-local function kernel_boot_coroutine_body(_G)
+local function kernel_boot_coroutine_body(_G, module)
 	--[[
 	-- Early booting process.
 	--
@@ -38,7 +38,6 @@ local function kernel_boot_coroutine_body(_G)
 	--]]
 	local assert = _G.assert
 	local error = assert( _G.error )
-	local module = assert( _G.module )
 	local coroutine = _G.coroutine
 
 
@@ -51,6 +50,7 @@ local function kernel_boot_coroutine_body(_G)
 	local _M = _M
 	local _PACKAGE = _PACKAGE
 	_M._G = _G
+	_M.module = module
 	_M.assert = assert
 	_M.error = error
 
@@ -192,7 +192,7 @@ local function kernel_boot_coroutine_body(_G)
 	
 	AddKernelComponent("bindings", BindTheKernel)
 
-	AddKernelComponent("loaders", boot_params, wicker_stem)
+	AddKernelComponent("loaders", boot_params, wicker_stem, module)
 	
 
 	Announce "Finished adding kernel components."
@@ -210,12 +210,12 @@ local function kernel_boot_coroutine_body(_G)
 end
 
 
-return function(_G)
+return function(_G, module)
 	local assert = _G.assert
 	local coroutine = _G.coroutine
 
 	local kernel_booter = assert( coroutine.create(kernel_boot_coroutine_body) )
-	assert( coroutine.resume(kernel_booter, _G) )
+	assert( coroutine.resume(kernel_booter, _G, module) )
 
 	return kernel_booter
 end

@@ -40,17 +40,27 @@ local _G, assert = get_essential_values()
 
 local error = assert( _G.error )
 local require = assert( _G.require )
-local package = assert( _G.package )
 local coroutine = assert( _G.coroutine )
 local type = assert( _G.type )
 local table = assert( _G.table )
 local pairs = assert( _G.pairs )
 local ipairs = assert( _G.ipairs )
-local module = assert( _G.module )
+local setfenv = assert( _G.setfenv )
+
+
+local function super_basic_module(name)
+	local t = {}
+
+	t._M = t
+	t._NAME = name
+	t._PACKAGE = name:match("^(.-)[%a_][%w_]*$") or ""
+
+	return t
+end
 
 
 
-module(...)
+setfenv(1, super_basic_module(...))
 
 
 
@@ -60,7 +70,7 @@ local preprocess_boot_params = (function()
 
 		import = require,
 
-		package = package,
+		package = assert( _G.package ),
 
 		modcode_root = nil,
 
@@ -102,7 +112,16 @@ end)()
 
 local kernel, TheMod
 local function bootstrap(env, boot_params)
-	local kernel_bootstrapper = boot_params.import(_PACKAGE .. 'init.kernel')(_G)
+	local package = boot_params.package
+
+	local function basic_module(name)
+		local t = super_basic_module(name)
+		package.loaded[name] = t
+		setfenv(2, t)
+		return t
+	end
+
+	local kernel_bootstrapper = boot_params.import(_PACKAGE .. 'init.kernel')(_G, basic_module)
 	assert( type(kernel_bootstrapper) == "thread" )
 
 	do

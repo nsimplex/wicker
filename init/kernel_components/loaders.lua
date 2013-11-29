@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 
-return function(boot_params, wicker_stem)
+return function(boot_params, wicker_stem, module)
 	local assert = assert
 	local ipairs = ipairs
 	local table = table
@@ -63,20 +63,6 @@ return function(boot_params, wicker_stem)
 	end)()
 
 
-	local function basic_module(name)
-		local t = {}
-
-		t._M = t
-		t._NAME = name
-		t._PACKAGE = name:match("^(.-)[%a_][%w_]*$") or ""
-
-		package.loaded[name] = t
-
-		setfenv(2, t)
-		return t
-	end
-
-
 	local function NewMappedSearcher(input_map, output_map)
 		local current_searchers = alias_searchers()
 
@@ -99,7 +85,7 @@ return function(boot_params, wicker_stem)
 	local function NewBootBinder(get_booter)
 		return function(fn)
 			return function(name, ...)
-				local _M = basic_module(name)
+				module(name)
 				get_booter()(_M)
 				setfenv(fn, _M)
 				return fn(name, ...)
