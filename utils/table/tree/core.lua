@@ -79,7 +79,7 @@ Tree.WeakNew = Tree.NewWeak
 
 Tree.IsAbstractTree = Lambda.Compose( Lambda.Getter {[tree_meta] = true, [weak_tree_meta] = true}, getmetatable )
 
-Tree.IsTree = Lambda.And( Pred.IsTable, Lambda.Not(Pred.IsObject) )
+Tree.IsTree = Lambda.And( Pred.IsTable, Lambda.Or(Tree.IsAbstractTree, Lambda.Not(Pred.IsObject)) )
 Pred.IsTree = Tree.IsTree
 
 -- There are no empty trees with this implementation.
