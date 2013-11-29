@@ -21,6 +21,7 @@ return function(boot_params, wicker_stem, module)
 	local ipairs = ipairs
 	local table = table
 	local type = type
+	local getfenv = getfenv
 	local setfenv = setfenv
 
 
@@ -71,10 +72,10 @@ return function(boot_params, wicker_stem, module)
 			local name = table.remove(Args)
 			local mapped_name = input_map(name)
 			if mapped_name then
-				for _, fn in ipairs(current_searchers) do
-					local ret = fn(mapped_name)
-					if type(ret) == "function" then
-						return output_map(ret)
+				for _, searcher in ipairs(current_searchers) do
+					local fn = searcher(mapped_name)
+					if type(fn) == "function" then
+						return output_map(fn, mapped_name)
 					end
 				end
 				return "\tno file '" .. mapped_name .. "'"
@@ -110,10 +111,14 @@ return function(boot_params, wicker_stem, module)
 		end
 	end
 
-	local function Id(...)
-		return ...
+	local function PreloadRerouter(fn, name)
+		return function(...)
+			setfenv(fn, getfenv(1))
+			local ret = fn(...)
+			package.preload[name] = function() return ret end
+			return ret
+		end
 	end
-
 
 	local wicker_searcher = NewMappedSearcher(
 		NewPrefixFilter(wicker_stem),
@@ -128,7 +133,7 @@ return function(boot_params, wicker_stem, module)
 	table.insert(searchers, 1, mod_searcher)
 	local mod_rerouter = NewMappedSearcher(
 		NewPrefixAdder(modcode_root),
-		Id
+		PreloadRerouter
 	)
 	table.insert(_G.package.loaders, mod_rerouter)
 	table.insert(searchers, 1, wicker_searcher)
