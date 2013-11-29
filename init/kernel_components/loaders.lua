@@ -72,6 +72,9 @@ return function(boot_params, wicker_stem, module)
 			local name = table.remove(Args)
 			local mapped_name = input_map(name)
 			if mapped_name then
+				if package.loaded[mapped_name] then
+					return function() return package.loaded[mapped_name] end
+				end
 				for _, searcher in ipairs(current_searchers) do
 					local fn = searcher(mapped_name)
 					if type(fn) == "function" then
