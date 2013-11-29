@@ -29,7 +29,7 @@ local Debuggable = wickerrequire 'gadgets.debuggable'
 local FunctionQueue = wickerrequire 'gadgets.functionqueue'
 
 
-local PrefabCompiler = modrequire 'api.prefab_compiler'
+local PrefabCompiler = wickerrequire 'api.prefab_compiler'
 
 
 -- Key, used as an index to a Mod object, leading to a table with a field

@@ -15,23 +15,25 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
-local write_proxy_prefab_file = (function()
+local function write_proxy_prefab_file(file_name)
 	local prefix = MODROOT.."scripts/prefabs/"
 	local importer = ("require(%q)"):format( GetModId()..".modrequire" )
+	local full_name = prefix..file_name..".lua"
 
-	return function(file_name)
-		local full_name = prefix..file_name
+	if _G.kleifileexists(full_name) then return end
 
-		if _G.kleifileexists(full_name) then return end
+	local fh = assert( io.open(full_name, "w") )
 
-		local fh = assert( io.open(full_name, "w") )
+	fh:write( "local ret = ", importer, "(", ("%q"):format("prefabs."..file_name), ")", "\n" )
+	fh:write( "\n" )
+	fh:write( "if getmetatable(ret) == Prefab then", "\n" )
+	fh:write( "\treturn ret", "\n" )
+	fh:write( "else", "\n" )
+	fh:write( "\treturn unpack(ret)", "\n" )
+	fh:write( "end", "\n" )
 
-		fh:write( "local ret = ", importer, "(", ("%q"):format("prefabs."..file_name), ")", "\n" )
-		fh:write( "return getmetatable(ret) == Prefab and ret or unpack(ret)", "\n" )
-
-		fh:close()
-	end
-end)()
+	fh:close()
+end
 
 return function(PrefabFiles)
 	for _, prefab_file in ipairs(PrefabFiles) do

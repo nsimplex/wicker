@@ -1,7 +1,7 @@
 -----
 --[[ Wicker ]] VERSION="3.0"
 --
--- Last updated: 2013-11-28
+-- Last updated: 2013-11-29
 -----
 
 --[[
@@ -46,6 +46,7 @@ local type = assert( _G.type )
 local table = assert( _G.table )
 local pairs = assert( _G.pairs )
 local ipairs = assert( _G.ipairs )
+local module = assert( _G.module )
 
 
 
@@ -83,7 +84,7 @@ local preprocess_boot_params = (function()
 		end
 
 		if type(boot_params.id) ~= "string" then
-			return error("String expected as boot parameter 'id'"., 3)
+			return error("String expected as boot parameter 'id'", 3)
 		end
 
 		if not boot_params.modcode_root:match("[%./\\]$") then

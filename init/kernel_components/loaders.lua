@@ -29,11 +29,38 @@ return function(boot_params, wicker_stem)
 
 
 	local modcode_root = boot_params.modcode_root
-	local package = boot_params.package
+	local import = assert( boot_params.import )
+	local package = assert( boot_params.package )
 	assert( type(package) == "table" )
 	local searchers = assert( package.searchers or package.loaders )
 	assert( type(searchers) == "table" )
 	assert( type(package.loaded) == "table" )
+
+
+	local is_object_import = type(import) == "table" and import.package == package
+
+
+	local alias_searchers = (function()
+		if not is_object_import then
+			return function()
+				local ret = {}
+				for _, fn in ipairs(searchers) do
+					table.insert(ret, fn)
+				end
+				return ret
+			end
+		else
+			return function()
+				local ret = {}
+				for _, fn in ipairs(searchers) do
+					table.insert(ret, function(name)
+						return fn(import, name)
+					end)
+				end
+				return ret
+			end
+		end
+	end)()
 
 
 	local function basic_module(name)
@@ -51,15 +78,13 @@ return function(boot_params, wicker_stem)
 
 
 	local function NewMappedSearcher(input_map, output_map)
-		local current_searchers = {}
-		for _, fn in ipairs(searchers) do
-			table.insert(current_searchers, fn)
-		end
+		local current_searchers = alias_searchers()
 
-		return function(name)
+		return function(...)
+			local Args = {...}
+			local name = table.remove(Args)
 			local mapped_name = input_map(name)
 			if mapped_name then
-				print("MAPPED NAME TO "..mapped_name)
 				for _, fn in ipairs(current_searchers) do
 					local ret = fn(mapped_name)
 					if type(ret) == "function" then
@@ -67,8 +92,6 @@ return function(boot_params, wicker_stem)
 					end
 				end
 				return "\tno file '" .. mapped_name .. "'"
-			else
-				print("DIDN'T MAP "..name)
 			end
 		end
 	end
@@ -86,7 +109,8 @@ return function(boot_params, wicker_stem)
 
 
 	local function NewPrefixFilter(prefix)
-		return function(name)
+		return function(...)
+			local name = table.remove{...}
 			if name:find(prefix, 1, true) == 1 then
 				return name
 			end
@@ -94,13 +118,14 @@ return function(boot_params, wicker_stem)
 	end
 
 	local function NewPrefixAdder(prefix)
-		return function(name)
+		return function(...)
+			local name = table.remove{...}
 			return prefix..name
 		end
 	end
 
-	local function Id(x)
-		return x
+	local function Id(...)
+		return ...
 	end
 
 

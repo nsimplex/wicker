@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 
-local _NAME = assert(..., 'This file should be loaded through require or equivalent.')
+local _NAME = ...
 
 
 --[[
@@ -40,6 +40,9 @@ local function kernel_boot_coroutine_body(_G)
 	local error = assert( _G.error )
 	local module = assert( _G.module )
 	local coroutine = _G.coroutine
+
+
+	assert(_NAME, 'This file should be loaded through require or equivalent.')
 
 
 	module(_NAME)
