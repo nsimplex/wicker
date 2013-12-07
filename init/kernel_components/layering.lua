@@ -80,7 +80,9 @@ return function()
 	end
 	local GetNextEnvironmentThreshold = GetNextEnvironmentThreshold
 	
-	-- Counts from 0 up, with 0 meaning the innermost environment different than the caller's.
+	-- Counts from 0 up, with 0 meaning the innermost environment different than the kernel's.
+	-- When used outside the kernel environment, the layer 0 corresponds to the environment
+	-- of the caller.
 	function GetEnvironmentLayer(n)
 		assert( type(n) == "number" )
 		assert( n >= 0 )
@@ -102,4 +104,5 @@ return function()
 
 
 	AddVariableCleanup("GetNextEnvironmentThreshold")
+	AddVariableCleanup("GetOuterEnvironment")
 end

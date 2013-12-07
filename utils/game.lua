@@ -53,6 +53,16 @@ function Move(inst, x, y, z)
 	end
 end
 
+function DistanceSqToNode(pt, node)
+	pt = ToPoint(pt)
+
+	local dx, dy, dz = pt.x - node[1], pt.y, pt.z - node[2]
+
+	return dx*dx + dy*dy + dz*dz
+end
+
+DistanceToNode = Lambda.Compose(math.sqrt, DistanceSqToNode)
+
 
 function FindAllEntities(center, radius, fn, and_tags, not_tags, or_tags)
 	center = ToPoint(center)
