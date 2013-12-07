@@ -56,7 +56,7 @@ end
 function DistanceSqToNode(pt, node)
 	pt = ToPoint(pt)
 
-	local dx, dy, dz = pt.x - node[1], pt.y, pt.z - node[2]
+	local dx, dy, dz = pt.x - node.cent[1], pt.y, pt.z - node.cent[2]
 
 	return dx*dx + dy*dy + dz*dz
 end
