@@ -33,9 +33,11 @@ return function(boot_params, wicker_stem)
 		assert( type(prefix) == "string" )
 		assert( type(name) == "string", "Package name is not a string." )
 		local M = basic_import(prefix..name)
+		--[[
 		if type(M) == "table" then
 			AssertEnvironmentValidity( M )
 		end
+		]]--
 		return M
 	end
 	
@@ -47,9 +49,11 @@ return function(boot_params, wicker_stem)
 	
 	function wickerrequire(name)
 		local M = prefixed_import(wicker_stem, name)
+		--[[
 		if type(M) == "table" then
 			AssertEnvironmentValidity( M )
 		end
+		]]--
 		return M
 	end
 	local wickerrequire = wickerrequire
@@ -58,9 +62,11 @@ return function(boot_params, wicker_stem)
 	
 	function modrequire(name)
 		local M = prefixed_import(modcode_root, name)
+		--[[
 		if type(M) == "table" then
 			AssertEnvironmentValidity( M )
 		end
+		]]--
 		return M
 	end
 	local modrequire = modrequire
@@ -73,9 +79,11 @@ return function(boot_params, wicker_stem)
 	
 		local M = prefixed_import(env._PACKAGE, name)
 	
+		--[[
 		if type(M) == "table" then
 			AssertEnvironmentValidity( M )
 		end
+		]]--
 	
 		return M
 	end
