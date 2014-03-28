@@ -17,10 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 local function write_proxy_prefab_file(file_name)
 	local prefix = MODROOT.."scripts/prefabs/"
-	local importer = ("require(%q)"):format( GetModId()..".modrequire" )
 	local full_name = prefix..file_name..".lua"
 
 	if _G.kleifileexists(full_name) then return end
+
+	local importer = ("require(%q)"):format( GetModId()..".modrequire" )
+
 
 	local fh = assert( io.open(full_name, "w") )
 

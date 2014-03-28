@@ -20,7 +20,7 @@ local Tree = pkgrequire 'core'
 
 local Lambda = wickerrequire 'paradigms.functional'
 
-local Logic = wickerrequire 'paradigms.logic'
+local Logic = wickerrequire 'lib.logic'
 local Pred = wickerrequire 'lib.predicates'
 
 

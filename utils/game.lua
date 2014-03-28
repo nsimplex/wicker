@@ -23,7 +23,7 @@ local Point = Point
 
 
 local Lambda = wickerrequire 'paradigms.functional'
-local Logic = wickerrequire 'paradigms.logic'
+local Logic = wickerrequire 'lib.logic'
 
 local Pred = wickerrequire 'lib.predicates'
 

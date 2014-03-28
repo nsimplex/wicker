@@ -20,12 +20,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 local factored_time_meta = {
 	__tostring = function(t)
 		if t.h > 0 then
-			return tostring(t.h) .. 'h' .. tostring(t.m) .. 'm' .. tostring(t.s) .. 's'
+			return ("%dh%02dm%02ds"):format(t.h, t.m, t.s)
 		end
 		if t.m > 0 then
-			return tostring(t.m) .. 'm' .. tostring(t.s) .. 's'
+			return ("%dm%02ds"):format(t.m, t.s)
 		end
-		return tostring(t.s) .. 's'
+		return ("%ds"):format(t.s)
 	end
 }
 

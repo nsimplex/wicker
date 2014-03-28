@@ -80,6 +80,10 @@ EmptyString = Constant("")
 -- The name is a reference to the Alexandroff Compactification construction in Topology.
 PointAtInfinity = Constant({})
 
+function Table(...)
+	return {...}
+end
+
 function IsEqualTo(a)
 	return function(x)
 		return x == a
@@ -101,6 +105,14 @@ function Compose(f, g)
 	assert( IsFunctional(g) )
 	return function(...)
 		return f(g(...))
+	end
+end
+
+---
+-- Cartesian product of two functions of the same domain.
+function CartesianProduct(f, g)
+	return function(...)
+		return f(...), g(...)
 	end
 end
 

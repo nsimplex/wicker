@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 local Lambda = wickerrequire 'paradigms.functional'
 local Iterator = Lambda.iterator
-local Logic = wickerrequire 'paradigms.logic'
+local Logic = wickerrequire 'lib.logic'
 
 local Pred = wickerrequire 'lib.predicates'
 

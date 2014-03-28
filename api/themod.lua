@@ -20,7 +20,7 @@ local package = package
 
 local Lambda = wickerrequire 'paradigms.functional'
 local Iterator = Lambda.iterator
-local Logic = wickerrequire 'paradigms.logic'
+local Logic = wickerrequire 'lib.logic'
 
 local Pred = wickerrequire 'lib.predicates'
 

@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 local Lambda = wickerrequire 'paradigms.functional'
 
-BindWickerModule 'paradigms.logic'
+BindWickerModule 'lib.logic'
 
 
 require 'entityscript'
