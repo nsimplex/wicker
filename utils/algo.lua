@@ -16,6 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 
+local Lambda = wickerrequire "paradigms.functional"
+local Pred = wickerrequire "lib.predicates"
+
 
 function LeastElementsOf(A, k, cmp)
 	assert(k > 0)
@@ -47,6 +50,58 @@ function LeastElementsOf(A, k, cmp)
 	end
 
 	return L
+end
+
+---
+-- Returns a function performing binary search on A. The returned function
+-- takes an element and returns the index of the match (or nil) as a first
+-- value, the greatest lower bound in A (if any) of the argument as a
+-- second value and the index to this bound as a third value.
+--
+-- @param A The array to be searched.
+-- @param cmp (optional) The strict comparison function. Defaults to the less operator.
+-- @param presorted Boolean indicating whether A is already sorted.
+-- @param copy_anyway Boolean indicating whether A should be copied even if it is presorted.
+--
+function BinarySearcher(A, cmp, presorted, copy_anyway)
+	assert( Pred.IsTable(A) )
+	cmp = cmp or Pred.Less
+	assert( Pred.IsCallable(cmp) )
+
+	local B
+	if not presorted or copy_anyway then
+		B = Lambda.InjectInto({}, ipairs(A))
+		if not presorted then
+			table.sort(B, cmp)
+		end
+	else
+		B = A
+	end
+
+	return function(x)
+		if B[1] == nil or cmp(x, B[1]) then
+			return nil
+		end
+
+		local imin, imax = 1, #B
+
+		while imin < imax do
+			local i = math.ceil( (imin + imax)/2 )
+
+			if cmp(x, B[i]) then
+				imax = i - 1
+			else
+				imin = i
+			end
+		end
+
+		local i
+		if imin == imax and not cmp(B[imin], x) then
+			i = imin
+		end
+
+		return i, B[imin], imin
+	end
 end
 
 return _M

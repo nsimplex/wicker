@@ -172,6 +172,8 @@ local function bootstrap(env, boot_params)
 		kernel.TheMod = TheMod
 		kernel.TheModConcept = TheModConcept
 
+		kernel.RunModPostInits()
+
 		return TheMod
 	end)()
 end

@@ -23,6 +23,7 @@ local Iterator = Lambda.iterator
 local Logic = wickerrequire 'lib.logic'
 
 local Pred = wickerrequire 'lib.predicates'
+wickerrequire "game.gamepredicates"
 
 local Debuggable = wickerrequire 'gadgets.debuggable'
 

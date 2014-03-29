@@ -16,18 +16,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 
-
-
-
 local Lambda = wickerrequire 'paradigms.functional'
-
-BindWickerModule 'lib.logic'
-
 
 require 'entityscript'
 
 
-IsWorldGen = assert( IsWorldGen )
+BindWickerModule 'lib.logic'
 
 
 function Less(a, b)
@@ -129,7 +123,8 @@ function HasMetaMethod(method)
 end
 
 
-IsCallable = LambdaOr( IsFunction, HasMetaMethod("call") )
+IsCallable = Lambda.IsFunctional
+IsFunctional = Lambda.IsFunctional
 
 IsStringable = LambdaOr( IsString, HasMetaMethod("tostring") )
 IsWordable = IsStringable
@@ -138,37 +133,14 @@ IsIndexable = LambdaOr( IsTable, HasMetaMethod("index") )
 IsNewIndexable = LambdaOr( IsTable, HasMetaMethod("newindex") )
 
 
-IsEntityScript = IsInstanceOf(EntityScript)
+-------------------------------------------------------------
+
+
+IsWorldGen = assert( IsWorldGen )
 
 IsVector3 = IsInstanceOf(Vector3)
 IsPoint = IsInstanceOf(Point)
-
-
-function IsValidGround(tile)
-	return tile and not ( tile == GROUND.IMPASSABLE or tile >= GROUND.UNDERGROUND)
-end
-
-function IsValidPoint(pt)
-	return IsValidGround(GetGroundTypeAtPosition( wickerrequire('utils.game').ToPoint(pt) ))
-end
-
-IsUnblockedPoint = (function()
-	local not_tags = {'NOBLOCK', 'player', 'FX', "INLIMBO", "DECOR"}
-
-	return function(pt, blocking_radius)
-		if IsValidPoint(pt) then
-			return not wickerrequire('utils.game').FindSomeEntity(
-				pt,
-				blocking_radius,
-				function(inst)
-					return inst.parent == nil and not inst.components.placer and not rawequal(inst, pt)
-				end,
-				nil,
-				not_tags
-			)
-		end
-	end
-end)()
+IsEntityScript = IsInstanceOf(EntityScript)
 
 function IsValid(inst)
 	return inst:IsValid()
@@ -181,10 +153,6 @@ end
 IsValidEntity = LambdaAnd( IsEntityScript, IsValid )
 IsOkEntity = LambdaAnd( IsEntityScript, IsOk )
 
-
 if not IsWorldgen() then
 	PrefabExists = _G.PrefabExists
 end
-
-
-return _M

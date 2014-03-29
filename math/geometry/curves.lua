@@ -5,6 +5,7 @@
 
 local Lambda = wickerrequire 'paradigms.functional'
 local Pred = wickerrequire 'lib.predicates'
+local Algo = wickerrequire "utils.algo"
 
 local Common = pkgrequire "common"
 local VVF = Common.VectorValuedFunction
@@ -54,8 +55,11 @@ end
 local function concatenate_many(t)
 	local n = #t
 
+	-- list of curve functions
 	local fns = {}
+	-- list of curve lengths
 	local Ls = {}
+	-- total length
 	local totalL = 0
 
 	for i, gamma in ipairs(t) do
@@ -65,24 +69,29 @@ local function concatenate_many(t)
 		totalL = totalL + L
 	end
 
-	local ls = {}
+	-- invls[i] is the total length divided by the ith length.
 	local invls = {}
+	-- proportion_until[i] is a number in [0, 1] indicating how much
+	-- the sum of lengths from curves 1 to i-1 contributes to the total
+	-- length.
+	local proportion_until = {0}
 
 	for i, L in ipairs(Ls) do
 		local l = L/totalL
-		ls[i] = l
 		invls[i] = 1/l
+		proportion_until[i + 1] = proportion_until[i] + l
 	end
+	proportion_until[#proportion_until] = nil
+
+	--[[
+	-- Given the parameter t, returns the index of the composing function in
+	-- which it falls.
+	--]]
+	local curve_finder = Lambda.Compose( Lambda.ThirdOf, Algo.BinarySearcher(proportion_until, nil, true) )
 
 	return Curve(function(t)
-		for i, l in ipairs(ls) do
-			if t < l then
-				return fns[i](invls[i]*t)
-			else
-				t = t - l
-			end
-		end
-		return fns[n](1)
+		local i = assert( curve_finder(t) )
+		return fns[i]( (t - proportion_until[i])*invls[i] )
 	end, totalL)
 end
 
@@ -92,11 +101,13 @@ function Curve.Concatenate(...)
 
 	if n == 1 and type(t[1]) == "table" and not Pred.IsObject(t[1]) then
 		t = t[1]
-		n = #t[1]
+		n = #t
 	end
 
 	if n == 2 then
 		return concatenate_two(t[1], t[2])
+	elseif n == 1 then
+		return t[1]
 	elseif n == 0 then
 		return Origin
 	else
@@ -104,6 +115,7 @@ function Curve.Concatenate(...)
 	end
 end
 Curve.__concat = concatenate_two
+Concatenate = Curve.Concatenate
 
 function Curve:__len()
 	return self.length
@@ -158,6 +170,10 @@ function Curve.__mul(alpha, lambda)
 	return Curve(fn, alpha.length*lambda)
 end
 
+function Curve:__tostring()
+	return ("curve from %s to %s"):format(tostring(self(0)), tostring(self(1)))
+end
+
 
 -----------------------------------------------
 
@@ -190,8 +206,30 @@ end
 
 UnitCircle = Circle(1)
 
-function Triangle(A, B, C)
-	return concatenate_many {LineSegment(A, B), LineSegment(B, C), LineSegment(C, A)}
+-- table of points
+function PolygonalPathFromTable(t)
+	local segs = {}
+	for i = 1, #t - 1 do
+		segs[i] = LineSegment(t[i], t[i + 1])
+	end
+	return Curve.Concatenate(segs)
+end
+
+function ClosedPolygonalPathFromTable(t)
+	local u = {}
+	for i, v in ipairs(t) do
+		u[i] = v
+	end
+	u[#u + 1] = t[1]
+	return PolygonalPathFromTable(u)
+end
+
+function PolygonalPath(...)
+	return PolygonalPathFromTable {...}
+end
+
+function ClosedPolygonalPath(...)
+	return ClosedPolygonalPathFromTable {...}
 end
 
 

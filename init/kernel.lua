@@ -195,6 +195,8 @@ local function kernel_boot_coroutine_body(_G, module)
 	AddKernelComponent("extra_utilities")
 
 	AddKernelComponent("loaders", boot_params, wicker_stem, module)
+
+	AddKernelComponent("hooks")
 	
 
 	Announce "Finished adding kernel components."
