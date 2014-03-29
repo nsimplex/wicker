@@ -185,8 +185,9 @@ function LineSegment(a, b)
 		length = a:Dist(b)
 	end
 
+	local v = b - a
 	return Curve(function(t)
-		return a + (b - a)*t
+		return a + v*t
 	end, length)
 end
 
