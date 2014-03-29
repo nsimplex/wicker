@@ -44,6 +44,7 @@ function SearchSpace:Find(p, maxtries)
 		end
 	end
 end
+SearchSpace.Search = SearchSpace.Find
 
 ---
 -- Searches deterministically.
@@ -105,6 +106,7 @@ function SearchSpace:FindByLattice(p, n, m)
 		end
 	end
 end
+SearchSpace.SearchByLattice = SearchSpace.FindByLattice
 
 function SearchSpace:__call(p, maxtries)
 	if p then
