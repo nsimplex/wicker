@@ -139,7 +139,7 @@ function Complex.Add(a, b)
 		end
 		return ugly_C( a.x + b, a.z, a.y )
 	end
-	return ugly_C( a.x + b.x, a.y + b.y, a.z + b.z )
+	return ugly_C( a.x + b.x, a.z + b.z, a.y + b.y )
 end
 Complex.__add = Complex.Add
 
