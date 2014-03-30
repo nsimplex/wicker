@@ -45,6 +45,7 @@ function Move(inst, x, y, z)
 		inst.Transform:SetPosition( pt:Get() )
 	end
 end
+MoveTo = Move
 
 function DistanceSqToNode(pt, node)
 	pt = ToPoint(pt)

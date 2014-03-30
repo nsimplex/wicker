@@ -29,8 +29,10 @@ return function()
 	-- The real setback is that Lua doesn't tell us what the stack size is.
 	function GetNextEnvironmentThreshold(i)
 		assert( i == nil or (type(i) == "number" and i > 0 and i == math.floor(i)) )
-		i = (i or 1) + 1
-	
+
+		local i0 = i or 1
+		i = i0 + 1
+
 		local env
 	
 		local function get_first()
@@ -40,7 +42,6 @@ return function()
 			if not status then
 				return error('Unable to get the initial environment!')
 			end
-			i = i + 1
 	
 			return env
 		end
@@ -52,6 +53,7 @@ return function()
 				status, env = pcall(getfenv, i + 2)
 				i = i + 1
 			end
+			i = i - 1
 	
 			return env
 		end
@@ -64,18 +66,17 @@ return function()
 		assert( env == first_env )
 	
 		while env == first_env do
+			i = i + 1
 			env = get_next()
 		end
-		i = i - 1
 	
 		if env == _G then
-			return error('Attempt to reach the global environment!')
+			return error('Attempt to reach the global environment! (i0 = '..i0..', i = '..i..')')
 		elseif env == _M then
-			return error('Attempt to reach the kernel environment!')
+			return error('Attempt to reach the kernel environment! (i0 = '..i0..', i = '..i..')')
 		end
 	
-		-- No, this is not a typo. The index should be subtracted twice.
-		-- The subtractions just have different meanings.
+		-- This subtraction makes i relative to the parent function.
 		return i - 1, env
 	end
 	local GetNextEnvironmentThreshold = GetNextEnvironmentThreshold

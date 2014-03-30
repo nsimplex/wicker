@@ -99,8 +99,7 @@ return function(boot_params, wicker_stem, module)
 					table.insert(self_postinits, post_fn)
 				end
 
-				module(name)
-				local _M = _M
+				local _M = module(name)
 
 				get_booter()(_M)
 				setfenv(fn, _M)
@@ -158,12 +157,15 @@ return function(boot_params, wicker_stem, module)
 		NewPrefixFilter(modcode_root),
 		NewBootBinder(GetModBooter)
 	)
+	
+
+	table.insert(searchers, 1, mod_searcher)
+
+	-- DO NOT move this above the preceding searchers insertion.
 	local mod_rerouter = NewMappedSearcher(
 		NewPrefixAdder(modcode_root),
 		PreloadRerouter
 	)
-
-	table.insert(searchers, 1, mod_searcher)
 	table.insert(_G.package.loaders, mod_rerouter)
 	table.insert(searchers, 1, wicker_searcher)
 end
