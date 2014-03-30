@@ -42,7 +42,7 @@ end
 
 function Rectangle(w, h)
 	return Surface(function(u, v)
-		return w*u, h*v
+		return C(w*u, h*v)
 	end)
 end
 
@@ -61,7 +61,7 @@ function AnnularSector(outer_radius, inner_radius, theta, theta0)
 	local radius_diff = outer_radius - inner_radius
 	local theta_frac = theta/8
 
-	return function(u, v)
+	return Surface(function(u, v)
 		local r, delta
 
 		local a, b = 2*u - 1, 2*v - 1
@@ -93,7 +93,7 @@ function AnnularSector(outer_radius, inner_radius, theta, theta0)
 		delta = phi + theta_frac + theta0
 
 		return C.Polar(R, delta)
-	end
+	end)
 end
 
 function DiskSector(radius, theta, theta0)
