@@ -7,6 +7,8 @@ local Pred = wickerrequire "lib.predicates"
 local bidimensional_rng = Lambda.CartesianProduct(math.random, math.random)
 
 local SearchSpace = Class(function(self, object, maxtries)
+	self.object = object
+
 	if Pred.IsCurve(object) then
 		self.rng = math.random
 	elseif Pred.IsSurface(object) then
