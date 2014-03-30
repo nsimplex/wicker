@@ -1,6 +1,9 @@
 local Lambda = wickerrequire "paradigms.functional"
 local Pred = wickerrequire "lib.predicates"
 
+local C = wickerrequire "math.complex"
+
+-- Assumes the vector are multipliable by complex numbers.
 VectorValuedFunction = {}
 
 local VVF = VectorValuedFunction
@@ -46,7 +49,6 @@ function VVF.Add(f, g)
 end
 
 local function VVF_rawScale(f, lambda)
-	assert( Pred.IsNumber(lambda) )
 	local f_prime = get_raw_fn(f)
 	return function(...)
 		return f_prime(...)*lambda
