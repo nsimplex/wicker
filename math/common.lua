@@ -1,4 +1,5 @@
 local Lambda = wickerrequire "paradigms.functional"
+local Pred = wickerrequire "lib.predicates"
 
 function ToPoint(x, y, z)
 	x = x or 0
@@ -29,7 +30,7 @@ function FastExponentiator(op)
 	local function pow(x, n)
 		if n == 1 then return x end
 
-		local a = pow(x, math.floor(n/2), op)
+		local a = pow(x, math.floor(n/2))
 		if n % 2 == 0 then
 			return op(a, a)
 		else
