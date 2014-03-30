@@ -7,6 +7,7 @@ local Lambda = wickerrequire 'paradigms.functional'
 local Pred = wickerrequire 'lib.predicates'
 local Algo = wickerrequire "utils.algo"
 
+local MathCommon = wickerrequire "math.common"
 local Common = pkgrequire "common"
 local VVF = Common.VectorValuedFunction
 
@@ -132,19 +133,7 @@ function Curve:Invert()
 	end, self.length)
 end
 
-
-local function private_pow(self, n)
-	if n == 1 then return self end
-
-	local sqrt = private_pow(self, math.floor(n/2))
-	local sqrt_sq = Curve.Concatenate(sqrt, sqrt)
-	if n % 2 == 0 then
-		return sqrt_sq
-	else
-		return Curve.Concatenate(sqrt_sq, self)
-	end
-end
-
+local private_pow = MathCommon.FastExponentiator(concatenate_two)
 function Curve:__pow(n)
 	if n == 0 then
 		return Singleton(self.fn(0))

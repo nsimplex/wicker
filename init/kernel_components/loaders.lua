@@ -87,12 +87,39 @@ return function(boot_params, wicker_stem, module)
 	end
 
 	local function NewBootBinder(get_booter)
+		local function self_postinit_error()
+			return error("AddSelfPostInit may only be called while the file is being loaded!", 2)
+		end
+
 		return function(fn)
 			return function(name, ...)
+				local self_postinits = {}
+
+				local function add_self_postinit(post_fn)
+					table.insert(self_postinits, post_fn)
+				end
+
 				module(name)
+				local _M = _M
+
 				get_booter()(_M)
 				setfenv(fn, _M)
-				return fn(name, ...)
+
+				_M.AddSelfPostInit = add_self_postinit
+
+				local ret = fn(name, ...)
+				if ret == nil then
+					ret = _M
+				end
+				package.loaded[name] = ret
+
+				for _, post_fn in ipairs(self_postinits) do
+					post_fn()
+				end
+
+				_M.AddSelfPostInit = self_postinit_error
+
+				return ret
 			end
 		end
 	end
@@ -131,13 +158,12 @@ return function(boot_params, wicker_stem, module)
 		NewPrefixFilter(modcode_root),
 		NewBootBinder(GetModBooter)
 	)
-
-
-	table.insert(searchers, 1, mod_searcher)
 	local mod_rerouter = NewMappedSearcher(
 		NewPrefixAdder(modcode_root),
 		PreloadRerouter
 	)
+
+	table.insert(searchers, 1, mod_searcher)
 	table.insert(_G.package.loaders, mod_rerouter)
 	table.insert(searchers, 1, wicker_searcher)
 end

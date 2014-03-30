@@ -90,12 +90,25 @@ IsProbability = LambdaAnd( IsNumber, IsInClosedRange(0, 1) )
 
 
 function IsObject(x)
-	return type(x) == "table" and getmetatable(x) and x.is_a
+	return type(x) == "table" and type(x.is_a) == "function"
 end
 
 function IsInstanceOf(C)
+	local getmetatable = getmetatable
+
+	local cache = {}
+
 	return function(x)
-		return IsObject(x) and x:is_a(C)
+		local m = getmetatable(x)
+		if m == nil then return false end
+
+		local cached_res = cache[m]
+		if cached_res == nil then
+			cached_res = (IsObject(x) and x:is_a(C)) and true or false
+			cache[m] = cached_res
+		end
+
+		return cached_res
 	end
 end
 
@@ -103,8 +116,18 @@ IsObjectOf = IsInstanceOf
 
 function IsClassOf(x)
 	if IsObject(x) then
+		local cache = {}
+
 		return function(C)
-			return x:is_a(C)
+			if C == nil then return false end
+
+			local cached_res = cache[C]
+			if cached_res == nil then
+				cached_res = x:is_a(C) and true or false
+				cache[C] = cached_res
+			end
+			
+			return cached_res
 		end
 	else
 		return IsEqualTo(type(x))
@@ -137,6 +160,7 @@ IsNewIndexable = LambdaOr( IsTable, HasMetaMethod("newindex") )
 
 
 IsWorldGen = assert( IsWorldGen )
+AtWorldGen = IsWorldGen
 
 IsVector3 = IsInstanceOf(Vector3)
 IsPoint = IsInstanceOf(Point)
@@ -156,3 +180,18 @@ IsOkEntity = LambdaAnd( IsEntityScript, IsOk )
 if not IsWorldgen() then
 	PrefabExists = _G.PrefabExists
 end
+
+function IsPrefab(prefab)
+	return function(inst)
+		return inst.prefab == prefab
+	end
+end
+
+function IsPrefabEntity(prefab)
+	return LambdaAnd( IsEntityScript, IsPrefab(prefab) )
+end
+
+
+AddSelfPostInit(function()
+	wickerrequire "game.gamepredicates"
+end)

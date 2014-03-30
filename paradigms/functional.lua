@@ -40,7 +40,7 @@ local getfenv = getfenv
 local setfenv = setfenv
 
 
-module(...)
+--module(...)
 local Lambda = _M
 
 function IsFunctional(x)
@@ -885,5 +885,11 @@ function TableFiber(f, i, j)
 	end
 end	
 
+
+assert( _M.AddSelfPostInit )
+assert( AddSelfPostInit )
+AddSelfPostInit(function()
+	wickerrequire "paradigms.logic"
+end)
 
 return _M

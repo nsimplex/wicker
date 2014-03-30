@@ -27,21 +27,14 @@ local Logic = wickerrequire 'lib.logic'
 
 local Pred = wickerrequire 'lib.predicates'
 
+local Math = wickerrequire "math"
 
-function ToPoint(x, y, z)
-	if y then
-		x = Point(x, y, z)
-	elseif Pred.IsEntityScript(x) then
-		x = x:GetPosition()
-	end
 
-	if not Pred.IsPoint(x) then
-		return error( ("point expected, got %s"):format(type(x)) )
-	end
-
-	return x
-end
+ToPoint = Math.ToPoint
 local ToPoint = ToPoint
+
+ToComplex = Math.ToComplex
+local ToComplex = ToComplex
 
 function Move(inst, x, y, z)
 	local pt = ToPoint(x, y, z)
