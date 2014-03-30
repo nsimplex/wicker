@@ -11,6 +11,8 @@ local MathCommon = wickerrequire "math.common"
 local Common = pkgrequire "common"
 local VVF = Common.VectorValuedFunction
 
+local C = wickerrequire "math.complex"
+
 Curve = Class(function(self, fn, length)
 	assert( Lambda.IsFunctional(fn) )
 	assert( Pred.IsNonNegativeNumber(length) )
@@ -186,7 +188,7 @@ function CircularArc(radius, theta, theta0)
 	theta0 = theta0 or 0
 	return Curve(function(t)
 		local delta = theta*t + theta0
-		return Point(radius*math.cos(delta), 0, radius*math.sin(delta))
+		return C.Polar(radius, delta)
 	end, theta*radius)
 end
 
