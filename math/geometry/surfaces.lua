@@ -7,7 +7,7 @@ local Lambda = wickerrequire 'paradigms.functional'
 local Pred = wickerrequire 'lib.predicates'
 
 local Common = pkgrequire "common"
-local VVF = Common.VVF
+local VVF = Common.VectorValuedFunction
 
 local C = wickerrequire "math.complex"
 
