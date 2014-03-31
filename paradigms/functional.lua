@@ -280,6 +280,14 @@ local function Curry(f, n)
 end
 _M.Curry = Curry
 
+function BinaryCurry(f)
+	return function(x)
+		return function(y)
+			return f(x, y)
+		end
+	end
+end
+
 function Uncurry(f)
 	return function(...)
 		local g = f
@@ -287,6 +295,56 @@ function Uncurry(f)
 			g = g(x)
 		end
 		return g
+	end
+end
+
+
+function Less(a, b)
+	return a < b
+end
+IsLess = Less
+
+GreaterThan = BinaryCurry(Less)
+IsGreaterThan = GreaterThan
+
+function Greater(a, b)
+	return a > b
+end
+IsGreater = Greater
+
+LessThan = BinaryCurry(Greater)
+IsLessThan = LessThan
+
+function LessOrEqual(a, b)
+	return a <= b
+end
+IsLessOrEqual = LessOrEqual
+
+GreaterOrEqualTo = BinaryCurry(LessOrEqual)
+IsGreaterOrEqualTo = GreaterOrEqualTo
+
+function GreaterOrEqual(a, b)
+	return a >= b
+end
+IsGreaterOrEqual = GreaterOrEqual
+
+LessOrEqualTo = BinaryCurry(GreaterOrEqual)
+IsLessOrEqualTo = LessOrEqualTo
+
+
+function Minimum(a, b)
+	if a and b and b < a then
+		return b
+	else
+		return a
+	end
+end
+
+function Maximum(a, b)
+	if a and b and b > a then
+		return b
+	else
+		return a
 	end
 end
 
@@ -316,9 +374,7 @@ end
 
 function Getter(t)
 	return function(k)
-		if k ~= nil then
-			return t[k]
-		end
+		return t[k]
 	end
 end
 
@@ -747,17 +803,50 @@ function GenerateConceptsFromApplying(Apply, ret)
 		return total
 	end
 	local function FoldIf(p, folder, ...)
-		return Fold(function(v, total)
+		local total = nil
+		Apply(function(v)
 			if p(v, total) then
-				return folder(v, total)
-			else
-				return total
+				total = folder(v, total)
 			end
 		end, ...)
+		return total
 	end
 	ret.Fold = Fold
 	ret.FoldIf = FoldIf
 
+	local function GenericMinimizeIf(cmp, p, f, ...)
+		local min, minval
+		Apply(function(v)
+			if p(v) then
+				local fv = f(v)
+				if minval == nil or (fv ~= nil and cmp(fv, minval)) then
+					min = v
+					minval = fv
+				end
+			end
+		end, ...)
+		return min, minval
+	end
+	ret.GenericMinimizeIf = GenericMinimizeIf
+	local GenericMinimize = BindSecond(GenericMinimizeIf, True)
+	ret.GenericMinimize = GenericMinimize
+	local GenericMinimumIf = Compose(FlipFirstTwo, GenericMinimizeIf)
+	ret.GenericMinimumIf = GenericMinimumIf
+	local GenericMinimum = BindSecond(GenericMinimumIf, True)
+	ret.GenericMinimum = GenericMinimum
+
+	local function specialize_comparison(affix, cmp)
+		local izeIf = BindFirst(GenericMinimizeIf, cmp)
+		ret[affix.."izeIf"] = izeIf
+		ret[affix.."ize"] = BindFirst(izeIf, True)
+
+		local umIf = BindFirst(GenericMinimumIf, cmp)
+		ret[affix.."umOfIf"] = umIf
+		ret[affix.."umOf"] = BindFirst(umIf, True)
+	end
+
+	specialize_comparison("Minim", Minimum)
+	specialize_comparison("Maxim", Maximum)
 
 	return ret
 end

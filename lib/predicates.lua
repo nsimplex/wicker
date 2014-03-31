@@ -24,17 +24,15 @@ require 'entityscript'
 BindWickerModule 'lib.logic'
 
 
-function Less(a, b)
-	return a < b
+for _, k in ipairs{
+		"Less", "Greater",
+		"LessThan", "GreaterThan",
+		"LessOrEqual", "GreaterOrEqual",
+		"LessOrEqualTo", "GreaterOrEqualTo",
+	} do
+	_M[k] = Lambda[k]
+	_M["Is"..k] = Lambda["Is"..k]
 end
-
-function LessOrEqual(a, b)
-	return a <= b
-end
-
-Greater = LambdaNot(LessOrEqual)
-
-GreaterOrEqual = LambdaNot(Less)
 
 
 function IsType(t)
