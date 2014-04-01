@@ -28,7 +28,7 @@ Pred.IsMarkovChain = Pred.IsInstanceOf(MarkovChain)
 
 local function _(self)
 	if not Pred.IsMarkovChain(self) then
-		return error("Continuous-Time Markov Chain expected as `self'.", 2)
+		return error("Markov Chain expected as `self'.", 2)
 	end
 end
 
@@ -110,8 +110,8 @@ function MarkovChain:GoTo(t)
 	local s = self.state
 	if s ~= t then
 		assert( self:IsState(t), "Invalid target state." )
-		self:GetTransitionFn()(s, t)
 		self.state = t
+		self:GetTransitionFn()(s, t)
 	end
 end
 
