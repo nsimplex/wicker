@@ -12,6 +12,8 @@ local Geo = wickerrequire "math.geometry"
 
 local define_road_stuff
 
+local built_road_data = false
+
 local GetRoadsData = (function()
 	local roads
 
@@ -56,7 +58,29 @@ local function build_road_curves(roads)
 	_M.TheRoad = Geo.Curves.Concatenate(road_parts)
 end
 
+local run_road_postinits
 
 define_road_stuff = function(roads)
 	build_road_curves(roads)
+	built_road_data = true
+	run_road_postinits()
 end
+
+
+AddRoadDataPostInit = (function()
+	local fns = {}
+
+	run_road_postinits = function()
+		for _, fn in ipairs(fns) do
+			fn()
+		end
+		fns = {}
+	end
+
+	return function(fn)
+		table.insert(fns, fn)
+		if built_road_data then
+			run_road_postinits()
+		end
+	end
+end)()
