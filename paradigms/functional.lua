@@ -254,13 +254,13 @@ _M.BindTail = BindTail
 BindFirst = BindHead
 
 function BindSecond(f, y)
-	return function(f, x, ...)
+	return function(x, ...)
 		return f(x, y, ...)
 	end
 end
 
 function BindThird(f, z)
-	return function(f, x, y, ...)
+	return function(x, y, ...)
 		return f(x, y, z, ...)
 	end
 end
@@ -845,8 +845,8 @@ function GenerateConceptsFromApplying(Apply, ret)
 		ret[affix.."umOf"] = BindFirst(umIf, True)
 	end
 
-	specialize_comparison("Minim", Minimum)
-	specialize_comparison("Maxim", Maximum)
+	specialize_comparison("Minim", Less)
+	specialize_comparison("Maxim", Greater)
 
 	return ret
 end

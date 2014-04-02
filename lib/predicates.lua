@@ -190,6 +190,18 @@ function IsPrefabEntity(prefab)
 end
 
 
+function ToPredicate(p)
+	if p == nil then
+		return Lambda.True
+	end
+	if type(p) == "string" then
+		return IsPrefab(p)
+	end
+	assert( IsCallable(p), "Predicate expected" )
+	return p
+end
+
+
 AddSelfPostInit(function()
 	wickerrequire "game.gamepredicates"
 end)

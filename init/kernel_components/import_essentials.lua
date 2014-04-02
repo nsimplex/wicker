@@ -35,6 +35,50 @@ return function()
 		function t.domodfile(fname)
 			return assert( loadmodfile(fname) )()
 		end
+		local domodfile = t.domodfile
+
+
+		--[[
+		-- Mimics Lua 5.2 behaviour, and extends next().
+		--]]
+		
+		local getmetatable = assert( t.getmetatable )
+
+		local oldnext = assert( t.next )
+		function t.next(u, k)
+			local m = getmetatable(u)
+			if m ~= nil then
+				local n = m.__next
+				if n ~= nil then
+					return n(u, k)
+				end
+			end
+			return oldnext(u, k)
+		end
+
+		local oldipairs = assert( t.ipairs )
+		function t.ipairs(u)
+			local m = getmetatable(u)
+			if m ~= nil then
+				local ip = m.__ipairs
+				if ip ~= nil then
+					return ip(u)
+				end
+			end
+			return oldipairs(u)
+		end
+
+		local oldpairs = assert( t.pairs )
+		function t.pairs(u)
+			local m = getmetatable(u)
+			if m ~= nil then
+				local p = m.__pairs
+				if p ~= nil then
+					return p(u)
+				end
+			end
+			return oldpairs(u)
+		end
 	end
 
 	local function import_stdlib_patches_into(t)
@@ -145,6 +189,7 @@ return function()
 			"nolineprint",
 
 			"TheSim",
+			"WorldSim",
 			"SaveIndex",
 			"SaveGameIndex",
 

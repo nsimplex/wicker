@@ -60,9 +60,10 @@ DistanceToNode = Lambda.Compose(math.sqrt, DistanceSqToNode)
 
 function FindAllEntities(center, radius, fn, and_tags, not_tags, or_tags)
 	center = ToPoint(center)
+	fn = Pred.ToPredicate(fn)
 	return Lambda.CompactlyFilter(
 		function(v)
-			return Pred.IsOk(v) and (not fn or fn(v))
+			return Pred.IsOk(v) and fn(v)
 		end,
 		ipairs(TheSim:FindEntities(center.x, center.y, center.z, radius, and_tags, not_tags, or_tags) or {})
 	)
@@ -70,9 +71,10 @@ end
 
 function FindSomeEntity(center, radius, fn, and_tags, not_tags, or_tags)
 	center = ToPoint(center)
+	fn = Pred.ToPredicate(fn)
 	return Lambda.Find(
 		function(v)
-			return Pred.IsOk(v) and (not fn or fn(v))
+			return Pred.IsOk(v) and fn(v)
 		end,
 		ipairs(TheSim:FindEntities(center.x, center.y, center.z, radius, and_tags, not_tags, or_tags) or {})
 	)
@@ -91,21 +93,10 @@ RandomlyGetEntity = FindRandomEntity
 function FindClosestEntity(center, radius, fn, and_tags, not_tags, or_tags)
 	center = ToPoint(center)
 
-	--[[
-	-- Local minimum is of the form {inst, distance_square}
-	--]]
-	local function folder(inst, local_minimum)
-		local d2 = distsq(center, inst:GetPosition())
-		if not local_minimum or d2 < local_minimum[2] then
-			return {inst, d2}
-		else
-			return local_minimum
-		end
-	end
+	local weight = Lambda.BindSecond(EntityScript.GetDistanceSqToPoint, center)
 
-	local result = Lambda.Fold( folder, ipairs(FindAllEntities(center, radius, fn, and_tags, not_tags, or_tags)) )
-
-	return result and result[1]
+	local inst = Lambda.Minimize(weight, ipairs(FindAllEntities(center, radius, fn, and_tags, not_tags, or_tags)))
+	return inst
 end
 GetClosestEntity = FindClosestEntity
 
