@@ -20,6 +20,7 @@ local GetRoadsData = (function()
 	AddModPostInit(function()
 		TheMod:AddGamePostInit(function()
 			if _G.GetWorld() then
+				TheMod:DebugSay("Waiting for savedata to build road structures.")
 				local SI = assert( _G.SaveGameIndex )
 				SI:GetSaveData(SI:GetCurrentSaveSlot(), SI:GetCurrentMode(), function(savedata)
 					roads = assert( savedata.map.roads )
@@ -64,6 +65,9 @@ define_road_stuff = function(roads)
 	build_road_curves(roads)
 	built_road_data = true
 	run_road_postinits()
+	if TheMod then
+		TheMod:DebugSay("Finished building road structures from savedata.")
+	end
 end
 
 

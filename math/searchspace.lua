@@ -14,7 +14,7 @@ local SearchSpace = Class(function(self, object, maxtries)
 	elseif Pred.IsSurface(object) then
 		self.rng = bidimensional_rng
 	else
-		return error("curve or surface expected as 'object' parameter.")
+		return error("Curve or Surface expected as 'object' parameter, got "..tostring(object)..".", 2)
 	end
 
 	self.maxtries = maxtries or 16
