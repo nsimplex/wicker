@@ -16,9 +16,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 
-
 local factored_time_meta = {
 	__tostring = function(t)
+		if t.d > 0 then
+			return ("%dd%02dh%02dm%02ds"):format(t.d, t.h, t.m, t.s)
+		end
 		if t.h > 0 then
 			return ("%dh%02dm%02ds"):format(t.h, t.m, t.s)
 		end
@@ -31,16 +33,17 @@ local factored_time_meta = {
 
 -- Factors and rounds time (given in seconds) into hours, minutes and seconds.
 function FactorTime(dt)
-	local s, m, h
+	local s, m, h, d
 	s = math.floor(dt)
-	m = math.floor(s/60)
+	m = math.floor(s*(1/60))
 	s = s % 60
-	h = math.floor(m/60)
-	m = m %60
+	h = math.floor(m*(1/60))
+	m = m % 60
+	d = math.floor(h*(1/24))
+	h = h % 24
 	return setmetatable(
-		{h = h, m = m, s = s},
+		{d = d, h = h, m = m, s = s},
 		factored_time_meta
 	)
 end
-
-return _M
+Factor = FactorTime

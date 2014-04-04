@@ -15,14 +15,32 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
-BindWickerModule 'utils.common'
 
-string = pkgrequire 'utils.string'
-table = pkgrequire 'utils.table'
-algo = pkgrequire 'utils.algo'
-time = pkgrequire 'utils.time'
-filesystem = pkgrequire 'utils.filesystem'
-io = pkgrequire 'utils.io'
-game = pkgrequire 'utils.game'
+local FunctionQueue = wickerrequire 'gadgets.functionqueue'
 
-return _M
+
+local postinits = FunctionQueue()
+
+
+_G.SpawnPrefab = (function()
+	local SpawnPrefab = _G.SpawnPrefab
+
+	return function(name)
+		local inst = SpawnPrefab(name)
+		if inst then
+			postinits(inst)
+		end
+		return inst
+	end
+end)()
+
+
+function AddPrefabPostInitAny(fn)
+	table.insert(postinits, fn)
+end
+
+
+TheMod:EmbedHook("AddPrefabPostInitAny", AddPrefabPostInitAny)
+
+
+return AddPrefabPostInitAny
