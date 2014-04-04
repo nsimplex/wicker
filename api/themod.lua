@@ -131,8 +131,13 @@ local Mod = Class(Debuggable, function(self)
 		return unpack(Rets)
 	end
 
-	local branch = modinfo.branch and tostring(modinfo.branch):upper()
+	local branch
+	local first_branch_query = true
 	function self:GetBranch()
+		if first_branch_query then
+			branch = self.modinfo.branch and tostring(self.modinfo.branch):upper()
+			first_branch_query = false
+		end
 		return branch
 	end
 end)
