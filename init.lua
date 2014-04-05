@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- Returns the global environment followed by assert.
 local function get_essential_values()
 	local function crash()
-		return ({})[nil]
+		({})[nil] = nil
 	end
 
 	local _G = _G or GLOBAL or crash()

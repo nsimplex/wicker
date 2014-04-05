@@ -35,6 +35,15 @@ Constant = Singleton
 
 Origin = Singleton(Point(0, 0, 0))
 
+function Curve:FlipYZ()
+	local fn = self.fn
+	return Curve(function(t)
+		local pt = fn(t)
+		pt.y, pt.z = pt.z, pt.y
+		return pt
+	end, self.length)
+end
+
 -- Concatenates two curves.
 local function concatenate_two(alpha, beta)
 	local a_fn, b_fn = alpha.fn, beta.fn
@@ -119,10 +128,6 @@ function Curve.Concatenate(...)
 end
 Curve.__concat = concatenate_two
 Concatenate = Curve.Concatenate
-
-function Curve:__len()
-	return self.length
-end
 
 function Curve:Length(t)
 	return self.length*(t or 1)

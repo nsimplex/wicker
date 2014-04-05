@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 
-InjectModPackage 'table.core'
+InjectPackage 'table.core'
 
 tree = pkgrequire 'table.tree'
 Tree = tree

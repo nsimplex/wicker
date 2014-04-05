@@ -1,4 +1,4 @@
-BindModPackage "geometry.common"
+BindPackage "geometry.common"
 
 Curves = pkgrequire "geometry.curves"
 Curve = Curves.Curve

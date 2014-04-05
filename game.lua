@@ -8,3 +8,6 @@ wickerrequire "game.gamepredicates"
 
 Effects = wickerrequire "game.effects"
 effects = Effects
+
+Physics = wickerrequire "game.physics"
+physics = Physics

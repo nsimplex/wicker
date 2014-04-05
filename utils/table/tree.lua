@@ -20,7 +20,7 @@ local Lambda = wickerrequire 'paradigms.functional'
 local Logic = wickerrequire 'lib.logic'
 
 
-InjectModPackage 'tree.core'
+InjectPackage 'tree.core'
 
 dfs = pkgrequire 'tree.dfs'
 Dfs = dfs

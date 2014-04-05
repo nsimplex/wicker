@@ -88,7 +88,7 @@ return function(boot_params, wicker_stem)
 		return M
 	end
 	local pkgrequire = pkgrequire
-	importer_metadata[pkgrequire] = {name = 'pkgrequire', category = 'ModPackage'}
+	importer_metadata[pkgrequire] = {name = 'pkgrequire', category = 'Package'}
 
 
 	importer_metadata[function(t) return t end] = {name = 'GetTable', category = 'Table'}
