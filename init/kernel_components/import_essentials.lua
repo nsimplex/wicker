@@ -27,7 +27,7 @@ return function()
 		local loadfile = assert( t.loadfile )
 
 		function t.loadmodfile(fname)
-			assert( type(fname) == "string", "Non-string given as a file path." )
+			assert( type(fname) == "string", "Non-string given as file path." )
 			return loadfile(MODROOT .. fname)
 		end
 		local loadmodfile = loadmodfile
@@ -43,12 +43,13 @@ return function()
 		--]]
 		
 		local getmetatable = assert( t.getmetatable )
+		local rawget = assert( t.rawget )
 
 		local oldnext = assert( t.next )
 		function t.next(u, k)
 			local m = getmetatable(u)
 			if m ~= nil then
-				local n = m.__next
+				local n = rawget(m, "__next")
 				if n ~= nil then
 					return n(u, k)
 				end
@@ -60,7 +61,7 @@ return function()
 		function t.ipairs(u)
 			local m = getmetatable(u)
 			if m ~= nil then
-				local ip = m.__ipairs
+				local ip = rawget(m, "__ipairs")
 				if ip ~= nil then
 					return ip(u)
 				end
@@ -72,7 +73,7 @@ return function()
 		function t.pairs(u)
 			local m = getmetatable(u)
 			if m ~= nil then
-				local p = m.__pairs
+				local p = rawget(m, "__pairs")
 				if p ~= nil then
 					return p(u)
 				end

@@ -185,6 +185,48 @@ end
 MarkovChain.__call = MarkovChain.Step
 
 
+---
+-- Returns a debug string.
+function MarkovChain:__tostring()
+	local states = Lambda.CompactlyInjectInto({}, table.keys(self.P))
+	local states_str = Lambda.CompactlyMapInto(tostring, {}, ipairs(states))
+	local max_len = Lambda.MaximumOf(string.len, ipairs(states_str))
+	states_str = Lambda.CompactlyMap(function(v)
+		return v..(" "):rep(max_len - #v)
+	end, ipairs(states_str))
+	local pad_str = (" "):rep(max_len)
+
+	local lines = {}
+
+	table.insert(lines, table.concat(
+		Lambda.CompactlyInjectInto({pad_str}, ipairs(states_str))
+	, " "))
+
+	local fmt_str = "%"..max_len..".3f"
+	for i, s in ipairs(states) do
+		local leftover = 1 - Lambda.Fold(Lambda.Add, table.values(self.P[s]))
+
+		table.insert(lines, table.concat(
+			Lambda.CompactlyMapInto(function(t, j)
+				local val
+				if i == j then
+					val = leftover
+				else
+					val = self.P[s][t]
+				end
+				if val then
+					return fmt_str:format(val)
+				else
+					return ("?"):rep(max_len)
+				end
+			end, {states_str[i]}, ipairs(states))
+		, " "))
+	end
+
+	return table.concat(lines, "\n")
+end
+
+
 local function GenerateMethodAliases()
 	local affix_aliases = {
 		State = {"Node"},

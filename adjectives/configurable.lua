@@ -139,7 +139,7 @@ local function GetConfigurationTable(self)
 end
 
 local get_virtual_configuration_table = (function()
-	local vtables = setmetatable({CONFIGURATION_ROOT = CONFIGURATION_ROOT_PROXY}, {__mode = "k"})
+	local vtables = {CONFIGURATION_ROOT = CONFIGURATION_ROOT_PROXY}
 
 	local meta
 	meta = {

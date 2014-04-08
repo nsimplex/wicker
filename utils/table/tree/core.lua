@@ -106,6 +106,8 @@ Tree.HasChild = function(t, k)
 	return Tree.GetChild(t, k) ~= nil
 end
 
+Tree.HasChildren = Lambda.Not(Tree.IsLeaf)
+
 Tree.GetMetaData = function(t)
 	if Tree.IsAbstractTree(t) then
 		return getmetatable(t).__data[t]

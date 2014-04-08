@@ -194,7 +194,7 @@ function CircularArc(radius, theta, theta0)
 	return Curve(function(t)
 		local delta = theta*t + theta0
 		return C.Polar(radius, delta)
-	end, theta*radius)
+	end, math.abs(theta)*radius)
 end
 
 function Circle(radius, theta0)
@@ -229,5 +229,75 @@ function ClosedPolygonalPath(...)
 	return ClosedPolygonalPathFromTable {...}
 end
 
+--[[
+-- FIXME: not necessarily passing through A and B due to the vertical projection.
+--
+-- Circular arc connecting P to Q along a plane perpendicular to the ground.
+--
+-- There's a lot of math in the formulas used here, but just simple math
+-- (planar geometry, with a tiny bit of linear algebra).
+-- It can be derived from the equations:
+-- r cos(theta/2) = r - h
+-- r sin(theta/2) = d/2
+--
+-- Where d is the distance between the two points and h is the height. This
+-- has a proper solution if and only if h <= d/2. The solution theta is not
+-- being directly used.
+--
+-- @param P The origin point.
+-- @param Q The destination point.
+-- @param max_height (optional) Maximum height relative to the line connecting P and Q.
+--]]
+function CircularPathConnecting(P, Q, max_height)
+	assert( Pred.IsPoint(P) )
+	assert( Pred.IsPoint(Q) )
+	max_height = max_height or 2
+	assert( Pred.IsPositiveNumber(max_height) )
 
-return _M
+	local Q_to_P = P - Q
+
+	local d = Q_to_P:Length()
+	if d < 0.001 then
+		return Singleton(Q)
+	end
+
+	local h = math.max(max_height , d/2 - 0.05)
+
+	local r = (d*d)/(8*h) + h/2
+	assert( r >= h )
+
+	local theta = 2*math.acos(1 - h/r)
+	assert( 0 <= theta and theta <= math.pi )
+
+	-- New "horizontal" basis element.
+	local e1 = Q_to_P/d
+	-- New "vertical" basis element.
+	local e2
+	do
+		local old_e2 = Vector3(0, 1, 0)
+		-- Gram–Schmidt
+		e2 = old_e2 - old_e2:Dot(e1)*e1
+		if e2:LengthSq() < 1e-6 then
+			e2 = Vector3(0, 0, 0)
+		else
+			e2:Normalize()
+		end
+	end
+
+	assert( math.abs(e1:Dot(e2)) < 0.05 )
+
+
+	local new_origin = (P + Q)/2 + e2*(-(r - h))
+
+
+	local angle_to_P = math.asin(P:Dot(e2)/r)
+
+	
+	local canon_curve = CircularArc(r, theta, angle_to_P)
+	local canon_fn = canon_curve.fn
+	
+	return Curve(function(t)
+		local canon_pt = canon_fn(t)
+		return new_origin + e1*canon_pt.x + e2*canon_pt.z
+	end, canon_curve.length)
+end

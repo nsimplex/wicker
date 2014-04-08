@@ -20,6 +20,14 @@ local Lambda = wickerrequire 'paradigms.functional'
 
 require 'entityscript'
 
+local assert = assert
+local error = error
+local type = type
+local pairs = pairs
+local ipairs = ipairs
+local rawget = rawget
+local getmetatable = getmetatable
+
 
 BindWickerModule 'lib.logic'
 
@@ -135,11 +143,12 @@ end
 IsTypeOf = IsClassOf
 
 
+-- Returns the metamethod if it exists.
 function HasMetaMethod(method)
-	local mname = '__' .. method
+	local mname = "__"..method
 	return function(x)
 		local m = getmetatable(x)
-		return m and m[mname]
+		return m and rawget(m, mname)
 	end
 end
 
