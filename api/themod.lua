@@ -271,6 +271,7 @@ function Mod:EmbedHook(id, fn, when)
 	local specs_table = self[initspec_key].hook
 	local wrapper = self.AddHook
 	local full_name = "Add" .. id .. when .. "Init"..suffix
+	id = suffix..id
 
 	EmbedPlugin(self, specs_table, wrapper, full_name, id, fn).when = when:lower()
 end

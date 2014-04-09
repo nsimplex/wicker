@@ -36,6 +36,7 @@ end)()
 
 
 function AddPrefabPostInitAny(fn)
+	TheMod:Say("any::", fn)
 	table.insert(postinits, fn)
 end
 
