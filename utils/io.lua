@@ -25,20 +25,6 @@ _M.directorySeparator = DIR_SEP
 
 function NewSayer(prefix)
 	return function(...)
-		local version = TheMod.modinfo.version
-		if version then
-			version = tostring(version)
-			if #version > 0 then
-				if version:match("^%d") then
-					version = " v" .. version
-				else
-					version = " " .. version
-				end
-			end
-		else
-			version = ""
-		end
-
 		local actual_prefix
 		if prefix then
 			actual_prefix = tostring(prefix) .. ": "
@@ -52,8 +38,6 @@ function NewSayer(prefix)
 				os.date("[%X]"),
 				" (",
 				tostring( TheMod.Modname ),
-				" mod",
-				version,
 				") ",
 				actual_prefix
 			},

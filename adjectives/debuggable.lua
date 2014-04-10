@@ -156,4 +156,14 @@ function Debuggable:DebugSay(...)
 	end
 end
 
+function Debuggable:Warn(...)
+	self:Say("WARNING: ", ...)
+end
+
+function Debuggable:DebugWarn(...)
+	if self:IsDebugging() then
+		self:Warn(...)
+	end
+end
+
 return Debuggable
