@@ -212,6 +212,9 @@ return function()
 			"GetSeasonManager",
 
 			"GetGroundTypeAtPosition",
+
+			"Sleep",
+			"Yield",
 		}
 
 		local import_filter = {}
