@@ -17,6 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 return function()
+	local _G = _G
+
 	-- Returns the index (relative to the calling function) in the Lua stack of the last function with a different environment than the outer function.
 	-- It uses the Lua side convention for indexes, which are nonnegative and count from top to bottom.
 	--
@@ -27,7 +29,7 @@ return function()
 	--
 	-- This could be written much more cleanly and robustly at the C/C++ side.
 	-- The real setback is that Lua doesn't tell us what the stack size is.
-	function GetNextEnvironmentThreshold(i)
+	function GetNextEnvironmentThreshold(i, allow_global)
 		assert( i == nil or (type(i) == "number" and i > 0 and i == math.floor(i)) )
 
 		local i0 = i or 1
@@ -70,7 +72,7 @@ return function()
 			env = get_next()
 		end
 	
-		if env == _G then
+		if not allow_global and env == _G then
 			return error('Attempt to reach the global environment! (i0 = '..i0..', i = '..i..')')
 		elseif env == _M then
 			return error('Attempt to reach the kernel environment! (i0 = '..i0..', i = '..i..')')
@@ -84,21 +86,22 @@ return function()
 	-- Counts from 0 up, with 0 meaning the innermost environment different than the kernel's.
 	-- When used outside the kernel environment, the layer 0 corresponds to the environment
 	-- of the caller.
-	function GetEnvironmentLayer(n)
+	function GetEnvironmentLayer(n, allow_global)
 		assert( type(n) == "number" )
 		assert( n >= 0 )
 	
-		local i, env = GetNextEnvironmentThreshold()
+		local i, env = GetNextEnvironmentThreshold(nil, allow_global)
 		for _ = 1, n do
-			i, env = GetNextEnvironmentThreshold(i)
+			if env == _G then break end
+			i, env = GetNextEnvironmentThreshold(i, allow_global)
 		end
 	
 		return env, i - 1
 	end
 	local GetEnvironmentLayer = GetEnvironmentLayer
 	
-	function GetOuterEnvironment()
-		local env, i = GetEnvironmentLayer(0)
+	function GetOuterEnvironment(allow_global)
+		local env, i = GetEnvironmentLayer(0, allow_global)
 		return env, i - 1
 	end
 	local GetOuterEnvironment = GetOuterEnvironment

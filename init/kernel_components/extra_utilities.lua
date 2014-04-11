@@ -21,16 +21,24 @@ return function()
 	local tostring = assert( _G.tostring )
 
 	--[[
+	-- Propagates the error point to the outer environment.
+	--]]
+	function OuterError(str, ...)
+		local out_env, out_ind = GetEnvironmentLayer(1, true)
+
+		return error(
+			(str and tostring(str) or "ERROR"):format(...),
+			out_ind
+		)
+	end
+	local OuterError = OuterError
+
+	--[[
 	-- Propagates the assertion point to the outer environment.
 	--]]
 	function OuterAssert(cond, str, ...)
 		if not cond then
-			local out_env, out_ind = GetEnvironmentLayer(1)
-
-			return error(
-				(str and tostring(str) or "assertion failed!"):format(...),
-				out_ind
-			)
+			return OuterError(str or "assertion failed!", ...)
 		end
 	end
 end

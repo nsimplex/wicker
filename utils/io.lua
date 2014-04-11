@@ -66,7 +66,7 @@ function NewNotifier(prefix, layer_offset)
 	local Say = NewSayer(prefix)
 
 	local function DoNotify(...)
-		local env, i = GetEnvironmentLayer(layer_index)
+		local env, i = GetEnvironmentLayer(layer_index, true)
 		assert( i )
 
 		local info = debug.getinfo(i, 'Sl')
