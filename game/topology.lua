@@ -18,15 +18,11 @@ local GetRoadsData = (function()
 	local roads
 
 	AddModPostInit(function()
-		TheMod:AddGamePostInit(function()
-			if _G.GetWorld() then
-				TheMod:DebugSay("Waiting for savedata to build road structures.")
-				local SI = assert( _G.SaveGameIndex )
-				SI:GetSaveData(SI:GetCurrentSaveSlot(), SI:GetCurrentMode(), function(savedata)
-					roads = assert( savedata.map.roads )
-					define_road_stuff(roads)
-				end)
-			end
+		wickerrequire "plugins.addpopulateworldpreinit"
+
+		TheMod:AddPopulateWorldPreInit(function(savedata)
+			roads = savedata.map.roads or {}
+			define_road_stuff(roads)
 		end)
 	end)
 

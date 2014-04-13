@@ -19,28 +19,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 local FunctionQueue = wickerrequire 'gadgets.functionqueue'
 
 
-local postinits = FunctionQueue()
+local preinits = FunctionQueue()
 
 
-_G.SpawnPrefab = (function()
-	local SpawnPrefab = _G.SpawnPrefab
+local patched_populate = false
+TheMod:AddClassPostConstruct("saveindex", function()
+	if patched_populate then return end
+	if VarExists("PopulateWorld") then
+		patched_populate = true
 
-	return function(name)
-		local inst = SpawnPrefab(name)
-		if inst then
-			postinits(inst)
+		local populate = _G.PopulateWorld
+		_G.PopulateWorld = function(...)
+			preinits(...)
+			return populate(...)
 		end
-		return inst
 	end
-end)()
+end)
 
 
-function AddPrefabPostInitAny(fn)
-	table.insert(postinits, fn)
+local function AddPopulateWorldPreInit(fn)
+	table.insert(preinits, fn)
 end
 
 
-TheMod:EmbedHook("AddPrefabPostInitAny", AddPrefabPostInitAny)
-
-
-return AddPrefabPostInitAny
+TheMod:EmbedHook("AddPopulateWorldPreInit", AddPopulateWorldPreInit)
