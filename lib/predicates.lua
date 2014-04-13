@@ -94,9 +94,23 @@ end
 
 IsProbability = LambdaAnd( IsNumber, IsInClosedRange(0, 1) )
 
+-- Returns the metamethod if it exists.
+function HasMetaMethod(method)
+	local mname = "__"..method
+	return function(x)
+		local m = getmetatable(x)
+		return m and rawget(m, mname)
+	end
+end
+
+IsCallableTable = LambdaAnd(IsTable, HasMetaMethod("call"))
 
 function IsObject(x)
 	return type(x) == "table" and type(x.is_a) == "function"
+end
+
+function IsClass(x)
+	return IsCallableTable(x) and type(rawget(x, "_ctor")) == "function"
 end
 
 function IsInstanceOf(C)
@@ -141,16 +155,6 @@ function IsClassOf(x)
 end
 
 IsTypeOf = IsClassOf
-
-
--- Returns the metamethod if it exists.
-function HasMetaMethod(method)
-	local mname = "__"..method
-	return function(x)
-		local m = getmetatable(x)
-		return m and rawget(m, mname)
-	end
-end
 
 
 IsCallable = Lambda.IsFunctional

@@ -15,7 +15,11 @@ end
 
 ---------------------------------------
 
-local function find_global_fibermatch(y, f)
+local function find_global_fibermatch(x0, f)
+	if rawget(_G, x0) then
+		return x0
+	end
+	local y = f(x0)
 	for x in pairs(_G) do
 		if type(x) == "string" and f(x) == y then
 			return x
@@ -29,14 +33,20 @@ end
 -- (in the latter, the "fn" actually goes in the "classname" position.
 --
 local function AddGenericClassPostConstruct(pkgname, classname, fn)
+	local is_primary = false
+
 	if not fn then
-		classname, fn = fn, classname
+		fn = classname
+		classname = pkgname
+		pkgname = pkgname:lower()
+		is_primary = true
 	end
 
 	local pkg_prefix, pkg_suffix = pkgname:match("^(.-)([%w_]+)$")
 
-	local is_primary = (not classname or classname:lower() == pkg_suffix:lower())
-
+	if not is_primary and classname:lower() == pkg_suffix:lower() then
+		is_primary = true
+	end
 
 	local pkg
 	local effective_pkgname
@@ -51,12 +61,12 @@ local function AddGenericClassPostConstruct(pkgname, classname, fn)
 	end
 
 
-	if Pred.IsObject(pkg) then
+	if Pred.IsClass(pkg) then
 		modenv.AddClassPostConstruct(effective_pkgname, fn)
 		return
 	else
-		if not classname then
-			classname = find_global_fibermatch(pkg_suffix:lower(), string.lower)
+		if not classname or is_primary then
+			classname = find_global_fibermatch(pkg_suffix, string.lower)
 		end
 		if classname and VarExists(classname) then
 			modenv.AddGlobalClassPostConstruct("math", classname, fn)

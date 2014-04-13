@@ -23,7 +23,7 @@ local preinits = FunctionQueue()
 
 
 local patched_populate = false
-TheMod:AddClassPostConstruct("saveindex", function()
+TheMod:AddGlobalClassPostConstruct("saveindex", "SaveIndex", function()
 	if patched_populate then return end
 	if VarExists("PopulateWorld") then
 		patched_populate = true
