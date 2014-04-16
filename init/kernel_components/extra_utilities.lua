@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 return function()
 	local GetEnvironmentLayer = assert( GetEnvironmentLayer )
+	local GetOuterEnvironment = assert( GetOuterEnvironment )
+	local AddLazyVariableTo = assert( AddLazyVariableTo )
 	local tostring = assert( _G.tostring )
 
 	--[[
@@ -41,4 +43,13 @@ return function()
 			return OuterError(str or "assertion failed!", ...)
 		end
 	end
+	local OuterAssert = OuterAssert
+
+	--[[
+	-- Adds a lazy variable to the current environment.
+	--]]
+	function AddLazyVariable(k, fn)
+		return AddLazyVariableTo( GetOuterEnvironment(), k, fn )
+	end
+	local AddLazyVariable = AddLazyVariable
 end

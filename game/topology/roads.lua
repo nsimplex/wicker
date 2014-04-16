@@ -1,6 +1,4 @@
 local Common = pkgrequire "common"
-Common.Roads = _M
-Common.roads = _M
 
 
 local Lambda = wickerrequire "paradigms.functional"
@@ -10,30 +8,19 @@ local table = wickerrequire "utils.table"
 local Geo = wickerrequire "math.geometry"
 
 
-local define_road_stuff
-
-local built_road_data = false
-
-local GetRoadsData = (function()
-	local roads
-
-	AddModPostInit(function()
-		wickerrequire "plugins.addpopulateworldpreinit"
-
-		TheMod:AddPopulateWorldPreInit(function(savedata)
-			roads = savedata.map.roads or {}
-			define_road_stuff(roads)
-		end)
-	end)
-
-	return function()
-		return roads
+local function GetRoadsData()
+	local roads = rawget(_G, "Roads")
+	if not roads then
+		return OuterError("Attempt to fetch road data before it is available.")
 	end
-end)()
+	return roads
+end
 
 
 local function build_road_curves(roads)
 	local road_parts = {}
+
+	local Point = Point
 
 	local function process_road(road_data)
 		if road_data[1] ~= 3 then
@@ -55,32 +42,16 @@ local function build_road_curves(roads)
 	_M.TheRoad = Geo.Curves.Concatenate(road_parts)
 end
 
-local run_road_postinits
+local function define_road_stuff()
+	define_road_stuff = Lambda.Error("Attept to redefine road structures.")
 
-define_road_stuff = function(roads)
+	local roads = GetRoadsData()
+
 	build_road_curves(roads)
-	built_road_data = true
-	run_road_postinits()
+
 	if TheMod then
-		TheMod:DebugSay("Finished building road structures from savedata.")
+		TheMod:DebugSay("Finished building road structures.")
 	end
 end
 
-
-AddRoadDataPostInit = (function()
-	local fns = {}
-
-	run_road_postinits = function()
-		for _, fn in ipairs(fns) do
-			fn()
-		end
-		fns = {}
-	end
-
-	return function(fn)
-		table.insert(fns, fn)
-		if built_road_data then
-			run_road_postinits()
-		end
-	end
-end)()
+AddLazyVariable("TheRoad", define_road_stuff)

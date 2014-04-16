@@ -67,15 +67,17 @@ return function()
 	
 		assert( env == first_env )
 	
-		while env == first_env do
+		while env == first_env or env == _M do
 			i = i + 1
 			env = get_next()
 		end
 	
 		if not allow_global and env == _G then
 			return error('Attempt to reach the global environment! (i0 = '..i0..', i = '..i..')')
+		--[[
 		elseif env == _M then
 			return error('Attempt to reach the kernel environment! (i0 = '..i0..', i = '..i..')')
+		]]--
 		end
 	
 		-- This subtraction makes i relative to the parent function.

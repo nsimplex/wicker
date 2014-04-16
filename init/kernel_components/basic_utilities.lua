@@ -78,13 +78,17 @@ return function()
 	end
 	local NormalizeMetaIndex = NormalizeMetaIndex
 
-	function AttachMetaIndex(fn, object)
+	local function require_metatable(object)
 		local meta = getmetatable( object )
-
 		if not meta then
 			meta = {}
 			setmetatable( object, meta )
 		end
+		return meta
+	end
+
+	function AttachMetaIndex(fn, object)
+		local meta = require_metatable(object)
 
 		local oldfn = meta.__index
 
@@ -104,6 +108,35 @@ return function()
 
 		return object
 	end
+	local AttachMetaIndex = AttachMetaIndex
+
+	
+	local function lazy_var_index(object, k)
+		local meta = getmetatable(object)
+		local lazyhooks = meta and rawget(meta, "__lazy")
+		local fn = lazyhooks and lazyhooks[k]
+		if fn then
+			lazyhooks[k] = nil
+			local v = fn(k, object)
+			if v ~= nil then
+				object[k] = v
+				return v
+			end
+			return object[k]
+		end
+	end
+
+	function AddLazyVariableTo(object, k, fn)
+		local meta = require_metatable(object)
+		local lazyhooks = rawget(meta, "__lazy")
+		if not lazyhooks then
+			lazyhooks = {}
+			rawset(meta, "__lazy", lazyhooks)
+			AttachMetaIndex(lazy_var_index, object)
+		end
+		lazyhooks[k] = fn
+	end
+	local AddLazyVariableTo = AddLazyVariableTo
 
 
 	function InjectNonPrivatesIntoTableIf(p, t, f, s, var)
