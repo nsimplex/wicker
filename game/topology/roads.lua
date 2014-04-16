@@ -54,4 +54,4 @@ local function define_road_stuff()
 	end
 end
 
-AddLazyVariable("TheRoad", function() define_road_stuff end)
+AddLazyVariable("TheRoad", function() define_road_stuff() end)
