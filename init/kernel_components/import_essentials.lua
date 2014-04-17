@@ -191,6 +191,7 @@ return function()
 
 			"TheSim",
 			"WorldSim",
+			"TheFrontEnd",
 			"SaveIndex",
 			"SaveGameIndex",
 
