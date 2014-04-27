@@ -3,10 +3,13 @@
 --]]
 
 function FindActiveMod(testfn)
-	for _, moddir in ipairs( _G.ModManager:GetEnabledModNames() ) do
-		local its_modinfo = _G.KnownModIndex:GetModInfo(moddir)
-		if testfn( its_modinfo, moddir ) then
-			return its_modinfo, moddir
+	for _, mod in ipairs( _G.ModManager.mods ) do
+		local its_modinfo = mod.modinfo
+		if type(its_modinfo) ~= "table" then
+			its_modinfo = (mod.modname and _G.KnownModIndex:GetModInfo(mod.modname))
+		end
+		if type(its_modinfo) == "table" and testfn( its_modinfo, mod ) then
+			return its_modinfo, mod
 		end
 	end
 end
@@ -20,5 +23,11 @@ end
 function HasModWithId(id)
 	return FindActiveMod(function(info)
 		return info.id == id
+	end) ~= nil
+end
+
+function IsModEnabled(id_or_name)
+	return FindActiveMod(function(info)
+		return info.id == id_or_name or info.name == id_or_name
 	end) ~= nil
 end
