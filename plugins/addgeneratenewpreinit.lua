@@ -1,6 +1,9 @@
 local Lambda = wickerrequire "paradigms.functional"
 local FunctionQueue = wickerrequire "gadgets.functionqueue"
 
+wickerrequire "plugins.addworldgenmainpostload"
+
+
 
 local preinits = FunctionQueue()
 
@@ -16,26 +19,12 @@ local function PatchGenerateNew(generate_new)
 	end
 end
 
+
 if IsWorldgen() then
-	local did_patch = false
-
-	local json = require "json"
-
-	json.decode = (function()
-		local decode = json.decode
-
-		return function(...)
-			if not did_patch then
-				local generate_new = rawget(_G, "GenerateNew")
-				if generate_new then
-					_G.GenerateNew = PatchGenerateNew(generate_new)
-					did_patch = true
-					json.decode = decode
-				end
-			end
-			return decode(...)
-		end
-	end)()
+	TheMod:AddWorldgenMainPostLoad(function()
+		local generate_new = _G.GenerateNew
+		_G.GenerateNew = PatchGenerateNew(generate_new)
+	end)
 else
 	AddGenerateNewPreInit = Lambda.Nil
 end
