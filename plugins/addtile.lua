@@ -16,6 +16,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 
+-- Lists the structure for a tile specification by mapping the possible fields to their
+-- default values.
+local tile_spec_defaults = {
+	noise_texture = "images/square.tex",
+	runsound = "dontstarve/movement/run_dirt",
+	walksound = "dontstarve/movement/walk_dirt",
+	snowsound = "dontstarve/movement/run_ice",
+	mudsound = "dontstarve/movement/run_mud",
+}
+
+-- Like the above, but for the minimap tile specification.
+local mini_tile_spec_defaults = {
+	name = "map_edge",
+	noise_texture = "levels/textures/mini_dirt_noise.tex",
+}
+
+
+------------------------------------------------------------------------
+
 
 require 'util'
 require 'map/terrain'
@@ -108,21 +127,6 @@ local function AddAssets(specs)
 	end)
 end
 
-
--- Lists the structure for a tile specification by mapping the possible fields to their
--- default values.
-local tile_spec_defaults = {
-	noise_texture = "images/square.tex",
-	runsound = "dontstarve/movement/run_dirt",
-	walksound = "dontstarve/movement/walk_dirt",
-	snowsound = "dontstarve/movement/run_ice",
-}
-
--- Like the above, but for the minimap tile specification.
-local mini_tile_spec_defaults = {
-	name = "map_edge",
-	noise_texture = "levels/textures/mini_dirt_noise.tex",
-}
 
 --[[
 -- name should match the texture/atlas specification in levels/tiles.
