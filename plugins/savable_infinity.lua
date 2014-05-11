@@ -85,15 +85,10 @@ end
 ------------------------------------------------------------------------
 
 
-local proxy_env_meta = {
-	__index = _G,
-	__newindex = _G,
-}
-
-local function NewDataDumperEnvironment()
+local function NewDataDumperEnvironment(parent_env)
 	local dumpertrigger
 	dumpertrigger = (function()
-		local old_dumpertrigger = assert( _G[dumpertrigger_name], "Trigger function '"..tostring(dumpertrigger_name).."' not found." )
+		local old_dumpertrigger = assert( parent_env[dumpertrigger_name], "Trigger function '"..tostring(dumpertrigger_name).."' not found." )
 
 		return function(...)
 			--print(os.time().." dumpertrigger")
@@ -104,6 +99,11 @@ local function NewDataDumperEnvironment()
 			return old_dumpertrigger(...)
 		end
 	end)()
+
+	local proxy_env_meta = {
+		__index = parent_env,
+		__newindex = parent_env,
+	}
 
 	return setmetatable({
 		[dumpertrigger_name] = function(...)
@@ -118,10 +118,11 @@ end
 
 function _G.DataDumper(...)
 	--print(os.time().." Running patched DataDumper")
-	local oldenv = getfenv(original_DataDumper)
-	setfenv(original_DataDumper, NewDataDumperEnvironment())
+	local oldenv = getfenv(1)
+	setfenv(original_DataDumper, NewDataDumperEnvironment(oldenv))
 	local ret = original_DataDumper(...)
 	setfenv(original_DataDumper, oldenv)
 	--print(os.time().." ran")
 	return ret
 end
+setfenv(_G.DataDumper, getfenv(original_DataDumper))
