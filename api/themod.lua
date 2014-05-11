@@ -232,22 +232,38 @@ function Mod:EmbedHook(id, fn, when)
 	id = tostring(id):gsub("^Add", "")
 	local suffix
 	do
-		local id_stem
+		local id_stem, modifier, basic_suffix
 
-		id_stem, suffix = id:match("^(.+)Any$")
+		id_stem, modifier = id:match("^(.+)Any$")
 		if id_stem then
 			id = id_stem
-			suffix = "Any"
+			modifier = "Any"
 		else
-			suffix = ""
+			modifier = ""
 		end
 
-		id_stem = id:match("^(.+)PostInit$")
+		id_stem = id:match("^(.+)Init$")
+		if id_stem then
+			id = id_stem
+			basic_suffix = "Init"
+		else
+			id_stem = id:match("^(.+)Load$")
+			if id_stem then
+				id = id_stem
+				basic_suffix = "Load"
+			else
+				basic_suffix = ""
+			end
+		end
+
+		suffix = basic_suffix..modifier
+
+		id_stem = id:match("^(.+)Post$")
 		if id_stem then
 			id = id_stem
 			when = "post"
 		else
-			id_stem = id:match("^(.+)PreInit$")
+			id_stem = id:match("^(.+)Pre$")
 			if id_stem then
 				id = id_stem
 				when = "pre"
@@ -270,7 +286,7 @@ function Mod:EmbedHook(id, fn, when)
 
 	local specs_table = self[initspec_key].hook
 	local wrapper = self.AddHook
-	local full_name = "Add" .. id .. when .. "Init"..suffix
+	local full_name = "Add" .. id .. when .. suffix
 	id = suffix..id
 
 	EmbedPlugin(self, specs_table, wrapper, full_name, id, fn).when = when:lower()

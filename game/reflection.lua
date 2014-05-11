@@ -31,3 +31,23 @@ function IsModEnabled(id_or_name)
 		return info.id == id_or_name or info.name == id_or_name
 	end) ~= nil
 end
+
+EnableModInCache = (function()
+	local did_enable = false
+
+	return function(cb)
+		if did_enable then
+			cb()
+			return
+		end
+
+		local moddir = modenv.modname
+		local KnownModIndex = rawget(_G, "KnownModIndex")
+		assert(KnownModIndex)
+		if not KnownModIndex then return end
+
+		did_enable = true
+		KnownModIndex:Enable(moddir)
+		KnownModIndex:Save(cb)
+	end
+end)()
