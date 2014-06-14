@@ -70,8 +70,8 @@ local make_ro_proxy, ro_error = (function()
 			local v = t[meta][k]
 			if type(v) == "table" and not Pred.IsObject(v) then
 				v = make_ro_proxy(v)
+				rawset(t, k, v)
 			end
-			rawset(t, k, v)
 			return v
 		end,
 
@@ -378,11 +378,55 @@ end
 -- @param description A description for the parameter `what', used in error
 -- messages. When `what' is a file name, it is ignored, with the file name
 -- itself being used instead.
---
--- The object is discarded. This is a class method in disguise.
 function Configurable:LoadConfiguration(what, description)
 	cfgcheck(self)
 	return LoadConfiguration(GetConfigurationTable(self), what, description)
+end
+
+local function put_mod_cfgdata(root, opt)
+	local val = opt.saved
+	if val == nil then
+		val = opt.default
+	end
+	if val == nil then return end
+	if type(opt.name) ~= "string" then
+		return error("String expected as name of configuration option, got "..type(opt.name), 2)
+	end
+
+	local optkey
+	for id in opt.name:gmatch("[^%.]+") do
+		if optkey then
+			if not root[optkey] then
+				root[optkey] = {}
+			end
+			root = root[optkey]
+		end
+		optkey = id
+	end
+
+	root[optkey] = val
+end
+
+local loaded_mod_cfg_data = false
+---
+-- @description Loads the "standard" configuration (as specified in modinfo)
+-- into the configuration table of the calling object.
+--
+function Configurable:LoadModConfigurationData()
+	cfgcheck(self)
+	if loaded_mod_cfg_data then return end
+	loaded_mod_cfg_data = true
+
+	local OPTS = modenv.MODCONFIG
+	if type(OPTS) ~= "table" then
+		return error("Table expected as MODCONFIG value in the mod environment, got "..type(OPTS), 2)
+	end
+
+	local root = GetConfigurationTable(self)
+
+	for _, opt in ipairs(OPTS) do
+		put_mod_cfgdata(root, opt)
+	end
 end
 
 
