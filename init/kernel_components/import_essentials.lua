@@ -194,6 +194,8 @@ return function()
 			"TheFrontEnd",
 			"SaveIndex",
 			"SaveGameIndex",
+			"TheWorld",
+			"TheNet",
 
 			"LEVELTYPE",
 			"KEYS",

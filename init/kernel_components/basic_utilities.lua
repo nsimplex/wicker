@@ -23,13 +23,41 @@ return function()
 	local getmetatable = assert( _G.getmetatable )
 	local setmetatable = assert( _G.setmetatable )
 
-
-	function IsWorldgen()
-		return rawget(_G, "SEED") ~= nil
+	local function memoize_0ary(f)
+		local cached
+		return function()
+			if cached == nil then
+				cached = f()
+			end
+			return cached
+		end
 	end
+
+	IsWorldgen = memoize_0ary(function()
+		return rawget(_G, "SEED") ~= nil
+	end)
 	IsWorldGen = IsWorldgen
+	AtWorldgen = IsWorldgen
+	AtWorldGen = IsWorldgen
 
+	IsDST = memoize_0ary(function()
+		return _G.kleifileexists("networking.lua") and true or false
+	end)
+	IsMultiplayer = IsDST
 
+	function IsSingleplayer()
+		return not IsMultiplayer()
+	end
+
+	IsMasterSimulation = memoize_0ary(function()
+		if IsWorldgen() or not IsMultiplayer() then
+			return true
+		else
+			return _G.TheNet:GetIsMasterSimulation()
+		end
+	end)
+	IsMaster = IsMasterSimulation
+	
 	-- Returns an __index metamethod.
 	function LazyCopier(source, filter)
 		if not filter then

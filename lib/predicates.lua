@@ -170,9 +170,6 @@ IsNewIndexable = LambdaOr( IsTable, HasMetaMethod("newindex") )
 -------------------------------------------------------------
 
 
-IsWorldGen = assert( IsWorldGen )
-AtWorldGen = IsWorldGen
-
 IsVector3 = IsInstanceOf(Vector3)
 IsPoint = IsInstanceOf(Point)
 IsEntityScript = IsInstanceOf(EntityScript)
