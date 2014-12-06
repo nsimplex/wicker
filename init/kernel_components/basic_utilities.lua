@@ -57,6 +57,20 @@ return function()
 		end
 	end)
 	IsMaster = IsMasterSimulation
+
+	function AddNetwork(inst)
+		if IsDST() then
+			return inst.entity:AddNetwork()
+		end
+	end
+
+	function SetPristine(inst)
+		if IsDST() then
+			inst.entity:SetPristine()
+		end
+		return inst
+	end
+	MakePristine = SetPristine
 	
 	-- Returns an __index metamethod.
 	function LazyCopier(source, filter)
