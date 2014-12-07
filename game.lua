@@ -11,5 +11,8 @@ effects = Effects
 Physics = pkgrequire "game.physics"
 physics = Physics
 
+AmbientLighting = pkgrequire "game.ambientlighting"
+ambientlighting = AmbientLighting
+
 Reflection = pkgrequire "game.reflection"
 reflection = Reflection

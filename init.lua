@@ -176,6 +176,10 @@ local function bootstrap(env, boot_params)
 
 		return TheMod
 	end)()
+
+
+	local kernel_extender = wickerrequire "kernel_extensions"
+	kernel_extender(kernel)
 end
 
 

@@ -52,4 +52,23 @@ return function()
 		return AddLazyVariableTo( GetOuterEnvironment(), k, fn )
 	end
 	local AddLazyVariable = AddLazyVariable
+
+	public_pairs = (function()
+		local next = assert( _G.next )
+		local type = assert( _G.type )
+		local sbyte = assert( _G.string.byte )
+		local us = sbyte("_", 1)
+
+		local function f(s, var)
+			repeat
+				var = next(s, var)
+			until type(var) ~= "string" or sbyte(var, 1) ~= us
+			return var
+		end
+
+		return function(t)
+			return f, t
+		end
+	end)()
+	local public_pairs = public_pairs
 end

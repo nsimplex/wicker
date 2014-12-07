@@ -209,11 +209,6 @@ return function()
 
 			"GetTime",
 			
-			"GetPlayer",
-			"GetWorld",
-			"GetClock",
-			"GetSeasonManager",
-
 			"GetGroundTypeAtPosition",
 
 			"Sleep",

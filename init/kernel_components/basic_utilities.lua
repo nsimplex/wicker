@@ -22,20 +22,38 @@ return function()
 	local rawset = assert( _G.rawset )
 	local getmetatable = assert( _G.getmetatable )
 	local setmetatable = assert( _G.setmetatable )
+	local table = assert( _G.table )
 
-	local function memoize_0ary(f)
+	function memoize_0ary(f, dont_retry)
 		local cached
-		return function()
-			if cached == nil then
-				cached = f()
+		if not dont_retry then
+			return function()
+				if cached == nil then
+					cached = f()
+				else
+					f = nil
+				end
+				return cached
 			end
-			return cached
+		else
+			local tried = false
+			return function()
+				if not tried then
+					cached = f()
+				else
+					f = nil
+				end
+				return cached
+			end
 		end
 	end
+	local memoize_0ary = memoize_0ary
+	memoise_0ary = memoize_0ary
 
 	IsWorldgen = memoize_0ary(function()
 		return rawget(_G, "SEED") ~= nil
 	end)
+	local IsWorldgen = IsWorldgen
 	IsWorldGen = IsWorldgen
 	AtWorldgen = IsWorldgen
 	AtWorldGen = IsWorldgen
@@ -43,35 +61,42 @@ return function()
 	IsDST = memoize_0ary(function()
 		return _G.kleifileexists("networking.lua") and true or false
 	end)
+	local IsDST = IsDST
 	IsMultiplayer = IsDST
 
 	function IsSingleplayer()
-		return not IsMultiplayer()
+		return not IsDST()
 	end
+	local IsSingleplayer = IsSingleplayer
 
-	IsMasterSimulation = memoize_0ary(function()
+	IsHost = memoize_0ary(function()
 		if IsWorldgen() or not IsMultiplayer() then
 			return true
 		else
 			return _G.TheNet:GetIsMasterSimulation()
 		end
 	end)
-	IsMaster = IsMasterSimulation
+	local IsHost = IsHost
+	IsMasterSimulation = IsHost
 
-	function AddNetwork(inst)
-		if IsDST() then
-			return inst.entity:AddNetwork()
+	local _inner_IsDedicated
+	_inner_IsDedicated = memoize_0ary(function()
+		if not IsHost() or IsSingleplayer() then
+			return false
+		elseif IsWorldgen() then
+			return true
+		else
+			_inner_IsDedicated = function()
+				return _G.TheNet:IsDedicated()
+			end
+			return _inner_IsDedicated()
 		end
+	end)
+	function IsDedicated()
+		return _inner_IsDedicated()
 	end
+	local IsDedicated = IsDedicated
 
-	function SetPristine(inst)
-		if IsDST() then
-			inst.entity:SetPristine()
-		end
-		return inst
-	end
-	MakePristine = SetPristine
-	
 	-- Returns an __index metamethod.
 	function LazyCopier(source, filter)
 		if not filter then
@@ -129,23 +154,38 @@ return function()
 		return meta
 	end
 
+	local function metaindexes_accessor(t, k)
+		local indexes = rawget(getmetatable(t), "__indexes")
+		if not indexes then return end
+
+		for i = #indexes, 1, -1 do
+			local ind = indexes[i]
+			local v
+			if type(ind) == "function" then
+				v = ind(t, k)
+			else
+				v = ind[k]
+			end
+			if v ~= nil then
+				return v
+			end
+		end
+	end
+
 	function AttachMetaIndex(fn, object)
 		local meta = require_metatable(object)
 
-		local oldfn = meta.__index
-
-		if oldfn then
-			fn, oldfn = NormalizeMetaIndex(fn), NormalizeMetaIndex(oldfn)
-			meta.__index = function(object, k)
-				local v = fn(object, k)
-				if v ~= nil then
-					return v
-				else
-					return oldfn(object, k)
-				end
-			end
+		local indexes = rawget(meta, "__indexes")
+		if indexes then
+			table.insert(indexes, fn)
 		else
-			meta.__index = fn
+			local oldfn = meta.__index
+			if oldfn then
+				rawset(meta, "__indexes", {oldfn, fn})
+				rawset(meta, "__index", metaindexes_accessor)
+			else
+				rawset(meta, "__index", fn)
+			end
 		end
 
 		return object
@@ -158,9 +198,9 @@ return function()
 		local lazyhooks = meta and rawget(meta, "__lazy")
 		local fn = lazyhooks and lazyhooks[k]
 		if fn then
-			lazyhooks[k] = nil
 			local v = fn(k, object)
 			if v ~= nil then
+				lazyhooks[k] = nil
 				object[k] = v
 				return v
 			end
