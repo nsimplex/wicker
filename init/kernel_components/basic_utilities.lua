@@ -207,7 +207,6 @@ return function()
 				object[k] = v
 				return v
 			end
-			return object[k]
 		end
 	end
 

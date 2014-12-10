@@ -34,7 +34,7 @@ local NUM_SEGS = 16
 
 local PHASES = {"day", "dusk", "night"}
 
-local PHASE_ORDER = table.invert(PHASES)
+local PHASE_ORDER = PU.InvertTable(PHASES)
 
 ---
 
@@ -79,7 +79,7 @@ end
 
 local PseudoClock = PU.PseudoClass("PseudoClock", function(self, inst)
 	assert(IsDST(), "Attempt to create a PseudoClock object in singleplayer!")
-	assert(inst == TheWorld)
+	assert(TheWorld == nil or inst == TheWorld)
 	self.inst = inst
 
 	self.segs = {day = nil, dusk = nil, night = nil}

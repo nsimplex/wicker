@@ -96,6 +96,12 @@ return function()
 	local _G = _G
 
 	---
+
+	local function AddKernelLazyVariable(k, fn)
+		return AddLazyVariableTo(_M, k, fn)
+	end
+
+	---
 	
 	_M.HostClass = HostClass
 
@@ -107,9 +113,9 @@ return function()
 		end
 	else
 		GetLocalPlayer = _G.GetPlayer
-		AddLazyVariable("ThePlayer", GetLocalPlayer)
+		AddKernelLazyVariable("ThePlayer", GetLocalPlayer)
 	end
-	AddLazyVariable("TheLocalPlayer", GetLocalPlayer)
+	AddKernelLazyVariable("TheLocalPlayer", GetLocalPlayer)
 
 	GetPlayer = Lambda.Error("GetPlayer() must not be used.")
 
@@ -119,7 +125,7 @@ return function()
 		end
 	else
 		GetWorld = _G.GetWorld
-		AddLazyVariable("TheWorld", GetWorld)
+		AddKernelLazyVariable("TheWorld", GetWorld)
 	end
 
 	if IsDST() then
@@ -137,12 +143,15 @@ return function()
 			return _G.AllRecipes[name]
 		end
 	else
-		AddLazyVariable("GetRecipe", function() return _G.GetRecipe end)
+		AddKernelLazyVariable("GetRecipe", function()
+			require "recipe"
+			return _G.GetRecipe
+		end)
 	end
 
 	---
 
-	assert(TheWorld == nil)
+	assert(not VarExists("TheWorld"))
 	local pseudoclock, pseudoseasonmanager
 	local pseudo_initializer -- takes the world entity as argument
 	if IsDST() then
@@ -170,7 +179,7 @@ return function()
 		if mainname ~= "main" then return end
 		TheMod:AddPrefabPostInit("world", function(inst)
 			if pseudo_initializer then
-				assert(inst == TheWorld)
+				assert(TheWorld == nil or inst == TheWorld)
 				pseudo_initializer(inst)
 				pseudo_initializer = nil
 			end

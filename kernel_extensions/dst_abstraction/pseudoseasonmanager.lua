@@ -74,7 +74,7 @@ translateSeasonEvents()
 
 local PseudoSeasonManager = PU.PseudoClass("PseudoSeasonManager", function(self, inst)
 	assert(IsDST(), "Attempt to create a PseudoSeasonManager object in singleplayer!")
-	assert(inst == TheWorld)
+	assert(TheWorld == nil or inst == TheWorld)
 	self.inst = inst
 end)
 local PseudoSM = PseudoSeasonManager

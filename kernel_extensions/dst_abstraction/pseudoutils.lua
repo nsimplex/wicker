@@ -26,6 +26,14 @@ local Lambda = wickerrequire "paradigms.functional"
 local Logic = wickerrequire "lib.logic"
 
 
+function InvertTable(t)
+	local u = {}
+	for k, v in pairs(t) do
+		u[v] = k
+	end
+	return u
+end
+
 function NewMasterSetter(baseclass, baseclassname)
 	local assert = assert
 	local type = type
