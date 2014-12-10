@@ -18,8 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 local Lambda = wickerrequire 'paradigms.functional'
 
-require 'entityscript'
-
 local assert = assert
 local error = error
 local type = type
@@ -172,7 +170,12 @@ IsNewIndexable = LambdaOr( IsTable, HasMetaMethod("newindex") )
 
 IsVector3 = IsInstanceOf(Vector3)
 IsPoint = IsInstanceOf(Point)
-IsEntityScript = IsInstanceOf(EntityScript)
+
+if IsWorldgen() or not EntityScript then
+	IsEntityScript = Lambda.False
+else
+	IsEntityScript = IsInstanceOf(EntityScript)
+end
 
 function IsValid(inst)
 	return inst:IsValid()
@@ -195,8 +198,33 @@ function IsPrefab(prefab)
 	end
 end
 
+function HasTag(tag)
+	return function(inst)
+		return inst:HasTag(tag)
+	end
+end
+
+function HasTags(tags)
+	return function(inst)
+		for _, tag in ipairs(tags) do
+			if not inst:HasTag(tag) then
+				return false
+			end
+		end
+		return true
+	end
+end
+
 function IsPrefabEntity(prefab)
 	return LambdaAnd( IsEntityScript, IsPrefab(prefab) )
+end
+
+function IsEntityWithTag(tag)
+	return LambdaAnd( IsEntityScript, HasTag(tag) )
+end
+
+function IsEntityWithTags(tags)
+	return LambdaAnd( IsEntityScript, HasTags(tags) )
 end
 
 

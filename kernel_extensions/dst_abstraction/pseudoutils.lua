@@ -140,7 +140,7 @@ local NewTableWrapper = NewTableWrapper
 --]]
 
 TranslateWorldEvents = (function()
-	if not IsDST() then return Lambda.Nil end
+	if not IsDST() or IsWorldgen() then return Lambda.Nil end
 
 	local target_event_map = {}
 

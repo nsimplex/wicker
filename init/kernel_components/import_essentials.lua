@@ -223,7 +223,13 @@ return function()
 			import_filter[k] = true
 		end
 
-		AttachMetaIndex(LazyCopier(_G, import_filter), t)
+		local raw_G = setmetatable({}, {
+			__index = function(_, k)
+				return rawget(_G, k)
+			end,
+		})
+
+		AttachMetaIndex(LazyCopier(raw_G, import_filter), t)
 
 		for _, k in ipairs(mandatory_imports) do
 			assert( rawget(_G, k) ~= nil, ("The mandatory import %q doesn't exist!"):format(k) )

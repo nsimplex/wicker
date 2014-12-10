@@ -132,6 +132,14 @@ return function()
 
 	SetPause = forbidden_function("SetPause")
 
+	if IsDST() then
+		function GetRecipe(name)
+			return _G.AllRecipes[name]
+		end
+	else
+		AddLazyVariable("GetRecipe", function() return _G.GetRecipe end)
+	end
+
 	---
 
 	assert(TheWorld == nil)

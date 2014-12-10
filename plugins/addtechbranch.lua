@@ -25,7 +25,7 @@ local function nasty_overridings()
 	local Builder = _G.require "components/builder"
 
 	function Builder:KnowsRecipe(recname)
-		local recipe = _G.GetRecipe(recname)
+		local recipe = GetRecipe(recname)
 	 
 		if recipe then
 			local is_intrinsic = true
