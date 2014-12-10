@@ -38,6 +38,28 @@ local PHASE_ORDER = table.invert(PHASES)
 
 ---
 
+local function translatePhaseEvents()
+	-- To be used with the old "daytime" and similar events.
+	local wrapCycleData = PU.NewTableWrapper("day")
+
+	local function getCycleData()
+		return wrapCycleData(GetPseudoClock():GetNumCycles())
+	end
+
+	local event_map = {
+		daycomplete = {"cycles", map = wrapCycleData},
+	}
+	for _, phase in ipairs(PHASES) do
+		event_map[phase.."time"] = {"is"..phase, map = getCycleData}
+	end
+
+	PU.TranslateWorldEvents(event_map)
+end
+
+translatePhaseEvents()
+
+---
+
 local function shiftPhase(phase, delta)
 	return PHASES[(PHASE_ORDER[phase] + delta - 1) % #PHASES + 1]
 end
@@ -53,65 +75,12 @@ local function OnMoonPhaseChanged(self, data)
 	self.moonphase = data
 end
 
-local redirectPhaseEvents = (function()
-	-- Maps the old event name to the world watch id.
-	local target_event_map = {
-		daycomplete = "cycles",
-	}
-	for _, phase in ipairs(PHASES) do
-		target_event_map[phase.."time"] = "is"..phase
-	end
-
-	return function(wrld)
-		assert(IsDST())
-		assert(wrld == TheWorld)
-
-		_G.EntityScript.ListenForEvent = (function()
-			local ListenForEvent = assert(_G.EntityScript.ListenForEvent)
-
-			return function(inst, event, fn, source)
-				source = source or inst
-				if source ~= wrld then
-					return ListenForEvent(inst, event, fn, source)
-				end
-
-				local watch_id = target_event_map[event]
-				if watch_id then
-					return inst:WatchWorldState(watch_id, fn)
-				else
-					return ListenForEvent(inst, event, fn, source)
-				end
-			end
-		end)()
-
-		_G.EntityScript.RemoveEventCallback = (function()
-			local RemoveEventCallback = assert(_G.EntityScript.RemoveEventCallback)
-
-			return function(inst, event, fn, source)
-				source = source or inst
-				if source ~= wrld then
-					return RemoveEventCallback(inst, event, fn, source)
-				end
-
-				local watch_id = target_event_map[event]
-				if watch_id then
-					return inst:StopWatchingWorldState(watch_id, fn)
-				else
-					return RemoveEventCallback(inst, event, fn, source)
-				end
-			end
-		end)()
-	end
-end)()
-
 ---
 
-local PseudoClock = Class(function(self, inst)
+local PseudoClock = PU.PseudoClass("PseudoClock", function(self, inst)
 	assert(IsDST(), "Attempt to create a PseudoClock object in singleplayer!")
 	assert(inst == TheWorld)
 	self.inst = inst
-
-	redirectPhaseEvents(inst)
 
 	self.segs = {day = nil, dusk = nil, night = nil}
 	OnClockSegsChanged(self, {

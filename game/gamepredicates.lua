@@ -1,4 +1,6 @@
 local Game = pkgrequire "common"
+pkgrequire "searching"
+
 local Lambda = wickerrequire "paradigms.functional"
 
 require 'entityscript'

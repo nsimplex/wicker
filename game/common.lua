@@ -57,50 +57,6 @@ end
 
 DistanceToNode = Lambda.Compose(math.sqrt, DistanceSqToNode)
 
-
-function FindAllEntities(center, radius, fn, and_tags, not_tags, or_tags)
-	center = ToPoint(center)
-	fn = Pred.ToPredicate(fn)
-	return Lambda.CompactlyFilter(
-		function(v)
-			return Pred.IsOk(v) and fn(v)
-		end,
-		ipairs(TheSim:FindEntities(center.x, center.y, center.z, radius, and_tags, not_tags, or_tags) or {})
-	)
-end
-
-function FindSomeEntity(center, radius, fn, and_tags, not_tags, or_tags)
-	center = ToPoint(center)
-	fn = Pred.ToPredicate(fn)
-	return Lambda.Find(
-		function(v)
-			return Pred.IsOk(v) and fn(v)
-		end,
-		ipairs(TheSim:FindEntities(center.x, center.y, center.z, radius, and_tags, not_tags, or_tags) or {})
-	)
-end
-
-function FindRandomEntity(center, radius, fn, and_tags, not_tags, or_tags)
-	local E = FindAllEntities(center, radius, fn, and_tags, not_tags, or_tags)
-	if #E > 0 then
-		return E[math.random(#E)]
-	end
-end
-GetRandomEntity = FindRandomEntity
-RandomlyFindEntity = FindRandomEntity
-RandomlyGetEntity = FindRandomEntity
-
-function FindClosestEntity(center, radius, fn, and_tags, not_tags, or_tags)
-	center = ToPoint(center)
-
-	local weight = Lambda.BindSecond(EntityScript.GetDistanceSqToPoint, center)
-
-	local inst = Lambda.Minimize(weight, ipairs(FindAllEntities(center, radius, fn, and_tags, not_tags, or_tags)))
-	return inst
-end
-GetClosestEntity = FindClosestEntity
-
-
 function ListenForEventOnce(inst, event, fn, source)
 	-- Currently, inst2 == source, but I don't want to make that assumption.
 	local function gn(inst2, data)
@@ -112,4 +68,6 @@ function ListenForEventOnce(inst, event, fn, source)
 end
 
 
-return _M
+AddSelfPostInit(function()
+	pkgrequire "searching"
+end)

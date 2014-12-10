@@ -3,7 +3,7 @@ local FunctionQueue = wickerrequire "gadgets.functionqueue"
 local postinits = FunctionQueue()
 
 TheMod:AddPrefabPostInit("world", function()
-	assert( _G.GetPlayer() == nil )
+	assert( _G.GetLocalPlayer() == nil )
 	local player_prefab = _G.SaveGameIndex:GetSlotCharacter()
  
 	-- Unfortunately, we can't add new postinits by now. So we have to do
@@ -18,7 +18,7 @@ TheMod:AddPrefabPostInit("world", function()
 	end
 end)
 
-local function AddPlayerPrefabPostInit(fn)
+local function AddLocalPlayerPostInit(fn)
 	table.insert(postinits, fn)
 end
-TheMod:EmbedHook("AddPlayerPrefabPostInit", AddPlayerPrefabPostInit)
+TheMod:EmbedHook("AddLocalPlayerPostInit", AddLocalPlayerPostInit)

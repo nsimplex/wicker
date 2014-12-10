@@ -21,12 +21,16 @@ local error = error
 local Lambda = pkgrequire "common"
 pkgrequire "concepts"
 
-function Error(...)
-	local Args = {...}
-	return function()
-		return error( table.concat( Lambda.CompactlyMap(tostring, ipairs(Args)) ), 2 )
+function LeveledError(n)
+	return function(...)
+		local Args = {...}
+		return function()
+			return error( table.concat( Lambda.CompactlyMap(tostring, ipairs(Args)) ), n + 1 )
+		end
 	end
 end
+
+Error = LeveledError(1)
 
 function Assert(p, ...)
 	assert( Lambda.IsFunctional(p), "The assertion predicate should be functional." )

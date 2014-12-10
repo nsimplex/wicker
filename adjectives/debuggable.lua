@@ -103,6 +103,9 @@ end)
 
 Pred.IsDebuggable = Pred.IsInstanceOf(Debuggable)
 
+-- Clears the Configurable __call metamethod.
+Debuggable.__call = nil
+
 ---
 -- Alias of SetDebugFlag.
 function Debuggable:SetDebugging(b)

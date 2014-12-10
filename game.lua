@@ -1,5 +1,6 @@
 BindWickerModule "game.common"
 
+pkgrequire "game.searching"
 pkgrequire "game.gamepredicates"
 
 Topology = pkgrequire "game.topology"
@@ -16,3 +17,6 @@ ambientlighting = AmbientLighting
 
 Reflection = pkgrequire "game.reflection"
 reflection = Reflection
+
+Utils = pkgrequire "game.utils"
+utils = Utils

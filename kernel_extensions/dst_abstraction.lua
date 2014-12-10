@@ -26,6 +26,9 @@ local Lambda = wickerrequire "paradigms.functional"
 local PseudoClock = pkgrequire "dst_abstraction.pseudoclock"
 local PseudoSeasonManager = pkgrequire "dst_abstraction.pseudoseasonmanager"
 
+local IsDST = assert(IsDST)
+local IsHost = assert(IsHost)
+
 ---
 
 local modauthor = setmetatable({}, {
@@ -73,6 +76,14 @@ local function make_restricted_object(selffn, baseclass, restrictiontemplate, ba
 	return pseudoself
 end
 
+local function HostClass(...)
+	local C = Class(...)
+	if not IsHost() then
+		C._ctor = Lambda.LeveledError(2)("Attempt to create a host-only class in a client game. Please report this blasphemy to this mod's author, ", modauthor, ". Make sure to attach your log.txt in the report.")
+	end
+	return C
+end
+
 ---
 
 return function()
@@ -83,6 +94,10 @@ return function()
 	-- IsMasterSimulation
 	
 	local _G = _G
+
+	---
+	
+	_M.HostClass = HostClass
 
 	---
 
@@ -106,6 +121,16 @@ return function()
 		GetWorld = _G.GetWorld
 		AddLazyVariable("TheWorld", GetWorld)
 	end
+
+	if IsDST() then
+		TryPause = Lambda.Nil
+	else
+		TryPause = function(b)
+			return _G.SetPause(b)
+		end
+	end
+
+	SetPause = forbidden_function("SetPause")
 
 	---
 
@@ -133,12 +158,15 @@ return function()
 	end
 	GetClock = forbidden_function("GetClock")
 	GetSeasonManager = forbidden_function("GetSeasonManager")
-	TheMod:AddPrefabPostInit("world", function(inst)
-		if pseudo_initializer then
-			assert(inst == TheWorld)
-			pseudo_initializer(inst)
-			pseudo_initializer = nil
-		end
+	TheMod:AddPostRun(function(mainname)
+		if mainname ~= "main" then return end
+		TheMod:AddPrefabPostInit("world", function(inst)
+			if pseudo_initializer then
+				assert(inst == TheWorld)
+				pseudo_initializer(inst)
+				pseudo_initializer = nil
+			end
+		end)
 	end)
 
 	---

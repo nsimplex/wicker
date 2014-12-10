@@ -42,7 +42,37 @@ local LIGHTNING_MODES_PRETTYNAME_MAP = {
 
 ---
 
-local PseudoSeasonManager = Class(function(self, inst)
+local function translateWeatherEvents()
+	local wrapSnowLevel = PU.NewTableWrapper("snow")
+
+	local event_map = {
+		rainstart = {"startrain"},
+		rainstop = {"stoprain"},
+		snowstart = {"startsnow"},
+		snowstop = {"stopsnow"},
+
+		snowcoverchange = {"snowlevel", map = wrapSnowLevel},
+	}
+
+	PU.TranslateWorldEvents(event_map)
+end
+
+local function translateSeasonEvents()
+	local wrapSeason = PU.NewTableWrapper("season")
+
+	local event_map = {
+		seasonChange = {"season", map = wrapSeason},
+	}
+
+	PU.TranslateWorldEvents(event_map)
+end
+
+translateWeatherEvents()
+translateSeasonEvents()
+
+---
+
+local PseudoSeasonManager = PU.PseudoClass("PseudoSeasonManager", function(self, inst)
 	assert(IsDST(), "Attempt to create a PseudoSeasonManager object in singleplayer!")
 	assert(inst == TheWorld)
 	self.inst = inst
@@ -147,6 +177,10 @@ function MasterPseudoSM:ForcePrecip()
 	PushWE("ms_forceprecipitation", true)
 end
 
+function MasterPseudoSM:ForceStopPrecip()
+	PushWE("ms_forceprecipitation", false)
+end
+
 MasterPseudoSM.DoLightningStrike = PushWET("ms_sendlightningstrike")
 
 PseudoSM.GetPOP = WSGetter("pop")
@@ -190,7 +224,7 @@ MasterPseudoSM.Retreat = PushWET("ms_retreatseason")
 
 -- Not a complete equivalence.
 function MasterPseudoSM:StopPrecip()
-	PushWE("ms_forceprecipitation", false)
+	self:ForceStopPrecip()
 	self.inst.components.weather:OnUpdate(0)
 end
 

@@ -1,5 +1,23 @@
 local Common = pkgrequire "common"
 
+local function validate_inst_position(inst)
+	if not inst:IsOnValidGround() then
+		local fx = SpawnPrefab("splash_ocean")
+		local pos = inst:GetPosition()
+		fx.Transform:SetPosition(pos.x, pos.y, pos.z)
+		if inst:HasTag("irreplaceable") then
+			local player = Common.FindClosestPlayer(pos)
+			if player ~= nil then
+				inst.Transform:SetPosition(player.Transform:GetWorldPosition())
+			else
+				inst.Transform:SetPosition(0, 0, 0)
+			end
+		else
+			inst:Remove()
+		end
+	end
+end
+
 ---
 -- Throws an item from a point, as in loot dropping.
 --
@@ -28,20 +46,12 @@ function ThrowItem(item, srcpos, speed, vertangle, horangle)
 
 		item:DoTaskInTime(1, function() 
 			if not (item.components.inventoryitem and item.components.inventoryitem:IsHeld()) then
-				if not item:IsOnValidGround() then
-					local fx = SpawnPrefab("splash_ocean")
-					local pos = item:GetPosition()
-					fx.Transform:SetPosition(pos.x, pos.y, pos.z)
-					if item:HasTag("irreplaceable") then
-						item.Transform:SetPosition(GetPlayer().Transform:GetWorldPosition())
-					else
-						item:Remove()
-					end
-				end
+				validate_inst_position(item)
 			end
 		end)
 	else
 		item.Transform:SetPosition( srcpos:Get() )
+		validate_inst_position(item)
 	end
 
 	return item
@@ -166,5 +176,17 @@ function DropLootFromTheSky(inst, max_distance)
 
 			DropItemFromTheSky(item, center, min_radius, max_radius)
 		end
+	end
+end
+
+if IsDST() then
+	function ShakeCamera(inst, source_inst, shakeType, duration, speed, maxShake, maxDist)
+		if not inst.ShakeCamera then return end
+		return inst:ShakeCamera(shakeType, duration, speed, maxShake, source_inst, maxDist)
+	end
+else
+	function ShakeCamera(inst, source_inst, shakeType, duration, speed, maxShake, maxDist)
+		if not inst.components.playercontroller then return end
+		return inst.components.playercontroller:ShakeCamera(source_inst, shakeType, duration, speed, maxShake, maxDist)
 	end
 end

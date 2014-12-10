@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 local Lambda = wickerrequire "paradigms.functional"
+local Logic = wickerrequire "lib.logic"
 
 
 function NewMasterSetter(baseclass, baseclassname)
@@ -46,6 +47,16 @@ function NewMasterSetter(baseclass, baseclassname)
 	})
 end
 local NewMasterSetter = NewMasterSetter
+
+function PseudoClass(name, ...)
+	local C = Class(...)
+	local mt = getmetatable(C)
+	mt.__index = function(_, k)
+		return error("Attempt to access invalid member '"..tostring(k).."' in class "..name, 2)
+	end
+	return C
+end
+local PseudoClass = PseudoClass
 
 
 -- The optional self should be a component of the world entity.
@@ -112,3 +123,112 @@ function NewGenericMethodDefiner(possibilities)
 	end
 end
 local NewGenericMethodDefiner = NewGenericMethodDefiner
+
+
+---
+
+
+function NewTableWrapper(k)
+	return function(v)
+		return {[k] = v}
+	end
+end
+local NewTableWrapper = NewTableWrapper
+
+--[[
+-- This takes care of translating singleplayer world events into world state watching when in MP.
+--]]
+
+TranslateWorldEvents = (function()
+	if not IsDST() then return Lambda.Nil end
+
+	local target_event_map = {}
+
+	local getCallbackMap = (function()
+		local key = {}
+
+		local setmetatable = setmetatable
+
+		return function(inst, event)
+			local t = inst[key]
+			if t == nil then
+				t = {}
+				inst[key] = t
+			end
+			local ret = t[event]
+			if ret == nil then
+				ret = setmetatable({}, {__mode = "kv"})
+				t[event] = ret
+			end
+			return ret
+		end
+	end)()
+
+	-- Takes the world event listener as the fn parameter.
+	local function wrapCallback(fn, filter, datamap)
+		filter = filter or Lambda.True
+		datamap = datamap or Lambda.Identity
+
+		-- This is the world state watcher.
+		local function gn(inst, val)
+			if filter(val) then
+				return fn(inst, datamap(val))
+			end
+		end
+
+		return gn
+	end
+
+	_G.EntityScript.ListenForEvent = (function()
+		local ListenForEvent = assert(_G.EntityScript.ListenForEvent)
+
+		return function(inst, event, fn, source)
+			source = source or inst
+			if source ~= TheWorld then
+				return ListenForEvent(inst, event, fn, source)
+			end
+
+			local watch_info = target_event_map[event]
+			if watch_info then
+				local gn = wrapCallback(fn, watch_info.filter, watch_info.map)
+				getCallbackMap(inst, event)[fn] = gn
+				return inst:WatchWorldState(watch_info[1], gn)
+			else
+				return ListenForEvent(inst, event, fn, source)
+			end
+		end
+	end)()
+
+	_G.EntityScript.RemoveEventCallback = (function()
+		local RemoveEventCallback = assert(_G.EntityScript.RemoveEventCallback)
+
+		return function(inst, event, fn, source)
+			source = source or inst
+			if source ~= TheWorld then
+				return RemoveEventCallback(inst, event, fn, source)
+			end
+
+			local watch_info = target_event_map[event]
+			if watch_info then
+				local cb_map = getCallbackMap(inst, event)
+				local gn = cb_map[fn]
+				if gn then
+					cb_map[fn] = nil
+					return inst:StopWatchingWorldState(watch_info[1], gn)
+				end
+			else
+				return RemoveEventCallback(inst, event, fn, source)
+			end
+		end
+	end)()
+
+	return function(new_maps)
+		for k, v in pairs(new_maps) do
+			if type(v) ~= "table" then
+				v = {v}
+			end
+			target_event_map[k] = v
+		end
+	end
+end)()
+local TranslateWorldEvents = TranslateWorldEvents

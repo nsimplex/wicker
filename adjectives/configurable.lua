@@ -192,6 +192,8 @@ function Configurable:GetConfig(...)
 	return cfgtable
 end
 
+Configurable.__call = Configurable.GetConfig
+
 
 local configuration_env = {
 	TUNING = TUNING,

@@ -72,6 +72,9 @@ end
 
 IsEqualTo = Lambda.IsEqualTo
 
+IsTrue = ToBoolean
+IsFalse = Not
+
 --[[
 -- Propositional calculus on predicates (functions).
 --]]

@@ -148,7 +148,6 @@ function ModCheck(self)
 	assert( Pred.IsMod(self), "Don't forget to use ':'!" )
 end
 
-
 function Mod:IsDev()
 	ModCheck(self)
 	return self:GetBranch() == "DEV"

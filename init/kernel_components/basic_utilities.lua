@@ -59,7 +59,7 @@ return function()
 	AtWorldGen = IsWorldgen
 
 	IsDST = memoize_0ary(function()
-		return _G.kleifileexists("networking.lua") and true or false
+		return _G.kleifileexists("scripts/networking.lua") and true or false
 	end)
 	local IsDST = IsDST
 	IsMultiplayer = IsDST
@@ -77,14 +77,15 @@ return function()
 		end
 	end)
 	local IsHost = IsHost
+	IsServer = IsHost
 	IsMasterSimulation = IsHost
 
 	local _inner_IsDedicated
 	_inner_IsDedicated = memoize_0ary(function()
-		if not IsHost() or IsSingleplayer() then
-			return false
-		elseif IsWorldgen() then
+		if IsWorldgen() then
 			return true
+		elseif not IsHost() or IsSingleplayer() then
+			return false
 		else
 			_inner_IsDedicated = function()
 				return _G.TheNet:IsDedicated()
@@ -96,6 +97,8 @@ return function()
 		return _inner_IsDedicated()
 	end
 	local IsDedicated = IsDedicated
+	IsDedicatedHost = IsDedicated
+	IsDedicatedServer = IsDedicated
 
 	-- Returns an __index metamethod.
 	function LazyCopier(source, filter)
