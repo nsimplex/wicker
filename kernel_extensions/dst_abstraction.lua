@@ -26,6 +26,8 @@ local Lambda = wickerrequire "paradigms.functional"
 local PseudoClock = pkgrequire "dst_abstraction.pseudoclock"
 local PseudoSeasonManager = pkgrequire "dst_abstraction.pseudoseasonmanager"
 
+local PrefabConstructor = pkgrequire "dst_abstraction.prefab_constructor"
+
 local IsDST = assert(IsDST)
 local IsHost = assert(IsHost)
 
@@ -104,6 +106,8 @@ return function()
 	---
 	
 	_M.HostClass = HostClass
+
+	_M.SetupNetwork = PrefabConstructor.SetupNetwork
 
 	---
 
