@@ -274,6 +274,13 @@ function BindLast(f, x)
 	end
 end
 
+function BindAll(f, ...)
+	local Args = {...}
+	return function()
+		return f(unpack(Args))
+	end
+end
+
 
 local function Curry(f, n)
 	if n <= 0 then return f end
