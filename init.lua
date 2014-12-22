@@ -176,14 +176,16 @@ local function bootstrap(env, boot_params)
 
 		return TheMod
 	end)()
+end
 
-
+local function extend_kernel()
 	local kernel_extender = wickerrequire "kernel_extensions"
 	kernel_extender(kernel)
 end
 
-
 local process_mod_environment = (function()
+	local first_run = true
+
 	-- Additions to kernel from mod environments.
 	local kernel_env_additions = {}
 
@@ -198,6 +200,8 @@ local process_mod_environment = (function()
 
 		assert( modinfo, 'The mod environment has no modinfo!' )
 		assert( MODROOT, 'The mod environment has no MODROOT!' )
+
+		assert( type(modinfo.id) == "string", "Mods without a modinfo.id cannot be used with wicker." )
 
 		if overwrite or kernel.modenv == nil then
 			kernel.modenv = env
@@ -222,6 +226,11 @@ local process_mod_environment = (function()
 		end
 
 		TheMod:SlurpEnvironment(env, overwrite)
+
+		if first_run then
+			extend_kernel()
+			first_run = false
+		end
 	end
 end)()
 

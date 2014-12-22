@@ -22,80 +22,70 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 local Lambda = wickerrequire "paradigms.functional"
+local FunctionQueue = wickerrequire "gadgets.functionqueue"
+
+pkgrequire "dst_abstraction.assumptions"
+
+local Rest = pkgrequire "dst_abstraction.restriction"
 
 local PseudoClock = pkgrequire "dst_abstraction.pseudoclock"
 local PseudoSeasonManager = pkgrequire "dst_abstraction.pseudoseasonmanager"
 
 local PrefabConstructor = pkgrequire "dst_abstraction.prefab_constructor"
 
+local CmpActions = pkgrequire "dst_abstraction.componentactions"
+local Reps = pkgrequire "dst_abstraction.replicas"
+
+local NetVars = pkgrequire "dst_abstraction.netvars"
+local ModRPC = pkgrequire "dst_abstraction.rpc"
+
 local IsDST = assert(IsDST)
-local IsHost = assert(IsHost)
 
 ---
 
-local modauthor = setmetatable({}, {
-	__tostring = function()
-		return modinfo.author
-	end,
-})
+local AddLocalPlayerPostActivation
+if IsWorldgen() then
+	AddLocalPlayerPostActivation = Lambda.Nil
+elseif IsDST() then
+	local postactivations = FunctionQueue()
+	TheMod:AddPrefabPostInit("world", function(wrld)
+		wrld:ListenForEvent("playeractivated", function(wlrd, player)
+			if player == _G.ThePlayer then
+				postactivations(player)
+			end
+		end)
+	end)
 
----
-
-local function method_redirector(selffn, k)
-	return function(pseudoself, ...)
-		local self = selffn(pseudoself)
-		return self[k](self, ...)
+	AddLocalPlayerPostActivation = function(fn)
+		table.insert(postactivations, fn)
 	end
+else
+	AddLocalPlayerPostActivation = assert(modenv.AddSimPostInit)
 end
-
-local function forbidden_thing(what, k, badcase)
-	badcase = badcase or "multiplayer"
-	return Lambda.Error("The ", what, " ", k, " is not ", badcase, " friendly. Please report this blasphemy to this mod's author, ", modauthor, ". Make sure to attach your log.txt in the report.")
-end
-
-local forbidden_function = Lambda.BindFirst(forbidden_thing, "function")
-local forbidden_method = Lambda.BindFirst(forbidden_thing, "method")
-
-local function make_restricted_object(selffn, baseclass, restrictiontemplate, badcase)
-	local pseudoself = {}
-	for k, v in public_pairs(baseclass) do
-		if type(v) ~= "function" then
-			pseudoself[k] = v
-		elseif restrictiontemplate[k] then
-			pseudoself[k] = method_redirector(selffn, k)
-		else
-			pseudoself[k] = forbidden_method(k, badcase)
-		end
-	end
-	setmetatable(pseudoself, {
-		__index = function(_, k)
-			return selffn(pseudoself)[k]
-		end,
-		__newindex = function(_, k, v)
-			selffn(pseudoself)[k] = v
-		end,
-	})
-	return pseudoself
-end
-
-local function HostClass(...)
-	local C = Class(...)
-	if not IsHost() then
-		C._ctor = Lambda.LeveledError(2)("Attempt to create a host-only class in a client game. Please report this blasphemy to this mod's author, ", modauthor, ". Make sure to attach your log.txt in the report.")
-	end
-	return C
-end
+TheMod:EmbedHook("LocalPlayerPostActivation", AddLocalPlayerPostActivation)
 
 ---
 
 return function()
-	-- There are already set in init/kernel_components/basic_utilities.lua:
+	-- These are already set in init/kernel_components/basic_utilities.lua:
 	--
 	-- IsDST (aka IsMultiplayer)
 	-- IsSingleplayer
 	-- IsMasterSimulation
 	
+	if IsWorldgen() then
+		return
+	end
+
 	local _G = _G
+	local _M = _M
+
+	Rest.init(_M)
+	PrefabConstructor.init(_M)
+	CmpActions.init(_M)
+	Reps.init(_M)
+	NetVars.init(_M)
+	ModRPC.init(_M)
 
 	---
 
@@ -105,9 +95,27 @@ return function()
 
 	---
 	
-	_M.HostClass = HostClass
+	_M.HostClass = Rest.HostClass
 
-	_M.SetupNetwork = PrefabConstructor.SetupNetwork
+	---
+	
+	if IsDST() then
+		-- haaaack
+		local AddAction = assert(modenv.AddAction)
+		TheMod:EmbedAdder("Action", function(...)
+			local old_modname = modenv.modname
+			local tmp_modname
+			if modinfo.id then
+				tmp_modname = modinfo.id
+			else
+				tmp_modname = modenv.modname
+			end
+			modenv.modname = tmp_modname
+			local act = AddAction(...)
+			modenv.modname = old_modname
+			assert(act.mod_name == tmp_modname, "Logic error.")
+		end)
+	end
 
 	---
 
@@ -132,6 +140,14 @@ return function()
 		AddKernelLazyVariable("TheWorld", GetWorld)
 	end
 
+	require "recipe"
+	if IsDST() then
+		AllRecipes = _G.AllRecipes
+	else
+		AllRecipes = _G.Recipes
+	end
+	Recipes = AllRecipes
+
 	if IsDST() then
 		TryPause = Lambda.Nil
 	else
@@ -140,7 +156,7 @@ return function()
 		end
 	end
 
-	SetPause = forbidden_function("SetPause")
+	SetPause = Rest.ForbiddenFunction("SetPause")
 
 	if IsDST() then
 		function GetRecipe(name)
@@ -152,6 +168,10 @@ return function()
 			return _G.GetRecipe
 		end)
 	end
+
+	---
+
+	SendRPCToServer = Rest.ForbiddenFunction("SendRPCToServer", "singleplayer")
 
 	---
 
@@ -167,8 +187,8 @@ return function()
 		pseudo_initializer = function()
 			local Clock = require "components/clock"
 			local SeasonManager = require "components/seasonmanager"
-			pseudoclock = make_restricted_object(_G.GetClock, Clock, PseudoClock)
-			pseudoseasonmanager = make_restricted_object(_G.GetSeasonManager, SeasonManager, PseudoSeasonManager)
+			pseudoclock = Rest.MakeRestrictedObject(_G.GetClock, Clock, PseudoClock)
+			pseudoseasonmanager = Rest.MakeRestrictedObject(_G.GetSeasonManager, SeasonManager, PseudoSeasonManager)
 		end
 	end
 	function GetPseudoClock()
@@ -177,8 +197,8 @@ return function()
 	function GetPseudoSeasonManager()
 		return pseudoseasonmanager
 	end
-	GetClock = forbidden_function("GetClock")
-	GetSeasonManager = forbidden_function("GetSeasonManager")
+	GetClock = Rest.ForbiddenFunction("GetClock")
+	GetSeasonManager = Rest.ForbiddenFunction("GetSeasonManager")
 	TheMod:AddPostRun(function(mainname)
 		if mainname ~= "main" then return end
 		TheMod:AddPrefabPostInit("world", function(inst)

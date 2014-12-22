@@ -27,14 +27,12 @@ end)
 
 local getPhaseAndCaveColours = memoize_0ary(function()
 	assert(IsDST())
-	local OnPhaseChanged = getPhaseChangeAmbientSetter()
-	local getup = debug.getupvalue
+	local Reflection = wickerrequire "game.reflection"
 
-	local info = debug.getinfo(OnPhaseChanged, "u")
+	local OnPhaseChanged = getPhaseChangeAmbientSetter()
 
 	local phase, cave
-	for i = 1, info.nups do
-		local name, val = getup(OnPhaseChanged, i)
+	for i, name, val in Reflection.Upvalues(OnPhaseChanged) do
 		if name == "PHASE_COLOURS" then
 			phase = val
 		elseif name == "CAVE_COLOUR" then

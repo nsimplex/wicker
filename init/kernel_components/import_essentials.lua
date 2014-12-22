@@ -211,6 +211,10 @@ return function()
 			
 			"GetGroundTypeAtPosition",
 
+			"ACTIONS",
+			"Action",
+			"BufferedAction",
+
 			"Sleep",
 			"Yield",
 		}

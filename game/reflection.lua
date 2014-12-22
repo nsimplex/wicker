@@ -2,8 +2,66 @@
 -- Utilities for checking things about the game state.
 --]]
 
+function FindUpvalue(fn, upvalue_name)
+	assert(type(fn) == "function", "Function expected as 'fn' parameter.")
+
+	local info = debug.getinfo(fn, "u")
+	local nups = info and info.nups
+	if not nups then return end
+
+	local getupvalue = debug.getupvalue
+
+	for i = 1, nups do
+		local name, val = getupvalue(fn, i)
+		if name == upvalue_name then
+			return val, true
+		end
+	end
+end
+local FindUpvalue = FindUpvalue
+FindUpValue = FindUpvalue
+
+function RequireUpvalue(fn, upvalue_name)
+	local val, found = FindUpvalue(fn, upvalue_name)
+	if not found then
+		return error("Unable to find upvalue '"..tostring(upvalue_name).."' through introspection.", 2)
+	end
+	return val
+end
+local RequireUpvalue = RequireUpvalue
+RequireUpValue = RequireUpvalue
+
+Upvalues = (function()
+	local getinfo = debug.getinfo
+	local getupvalue = debug.getupvalue
+
+	local function f(s, var)
+		local fn, nups = s[1], s[2]
+		var = var + 1
+		if var > nups then
+			return
+		end
+		return var, getupvalue(fn, var)
+	end
+
+	return function(fn)
+		local info = getinfo(fn, "u")
+		local nups = info and info.nups or 0
+
+		return f, {fn, nups}, 0
+	end
+end)()
+local Upvalues = Upvalues
+
+---
+
+function EnabledMods()
+	return ipairs( _G.ModManager.mods )
+end
+local EnabledMods = EnabledMods
+
 function FindActiveMod(testfn)
-	for _, mod in ipairs( _G.ModManager.mods ) do
+	for _, mod in EnabledMods() do
 		local its_modinfo = mod.modinfo
 		if type(its_modinfo) ~= "table" then
 			its_modinfo = (mod.modname and _G.KnownModIndex:GetModInfo(mod.modname))

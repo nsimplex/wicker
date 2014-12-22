@@ -30,8 +30,9 @@ return function()
 			return function()
 				if cached == nil then
 					cached = f()
-				else
-					f = nil
+					if cached ~= nil then
+						f = nil
+					end
 				end
 				return cached
 			end
@@ -40,8 +41,8 @@ return function()
 			return function()
 				if not tried then
 					cached = f()
-				else
 					f = nil
+					tried = true
 				end
 				return cached
 			end
@@ -49,6 +50,27 @@ return function()
 	end
 	local memoize_0ary = memoize_0ary
 	memoise_0ary = memoize_0ary
+
+	local function lambdaif(p)
+		return function(a, b)
+			if p() then
+				return a
+			else
+				return b
+			end
+		end
+	end
+	local function immutable_lambdaif(p)
+		if p() then
+			return function(a, b)
+				return a
+			end
+		else
+			return function(a, b)
+				return b
+			end
+		end
+	end
 
 	IsWorldgen = memoize_0ary(function()
 		return rawget(_G, "SEED") ~= nil
@@ -58,47 +80,78 @@ return function()
 	AtWorldgen = IsWorldgen
 	AtWorldGen = IsWorldgen
 
+	IfWorldgen = immutable_lambdaif(IsWorldgen)
+	IfWorldGen = IfWorldgen
+
 	IsDST = memoize_0ary(function()
 		return _G.kleifileexists("scripts/networking.lua") and true or false
 	end)
 	local IsDST = IsDST
 	IsMultiplayer = IsDST
 
+	IfDST = immutable_lambdaif(IsDST)
+	IfMultiplayer = IfDST
+
 	function IsSingleplayer()
 		return not IsDST()
 	end
 	local IsSingleplayer = IsSingleplayer
 
+	IfSingleplayer = immutable_lambdaif(IsSingleplayer)
+
+	local function is_vacuously_host()
+		return IsWorldgen or not IsMultiplayer()
+	end
+
 	IsHost = memoize_0ary(function()
-		if IsWorldgen() or not IsMultiplayer() then
+		if is_vacuously_host() then
 			return true
 		else
-			return _G.TheNet:GetIsMasterSimulation()
+			return _G.TheNet:GetIsServer() and true or false
 		end
 	end)
 	local IsHost = IsHost
 	IsServer = IsHost
-	IsMasterSimulation = IsHost
 
-	local _inner_IsDedicated
-	_inner_IsDedicated = memoize_0ary(function()
-		if IsWorldgen() then
+	IsMasterSimulation = memoize_0ary(function()
+		if is_vacuously_host() then
 			return true
-		elseif not IsHost() or IsSingleplayer() then
-			return false
 		else
-			_inner_IsDedicated = function()
-				return _G.TheNet:IsDedicated()
-			end
-			return _inner_IsDedicated()
+			return _G.TheNet:GetIsMasterSimulation() and true or false
 		end
 	end)
-	function IsDedicated()
-		return _inner_IsDedicated()
-	end
+	IsMasterSim = IsMasterSimulation
+
+	IfHost = immutable_lambdaif(IsHost)
+	IfServer = IfHost
+
+	IfMasterSimulation = immutable_lambdaif(IsMasterSimulation)
+	IfMasterSim = IfMasterSimulation
+
+	IsClient = memoize_0ary(function()
+		if is_vacuously_host() then
+			return false
+		else
+			return _G.TheNet:GetIsClient() and true or false
+		end
+	end)
+
+	IfClient = immutable_lambdaif(IsClient)
+
+	IsDedicated = (function()
+		if IsWorldgen() then
+			return true
+		elseif IsSingleplayer() then
+			return false
+		else
+			return _G.TheNet:IsDedicated() and true or false
+		end
+	end)
 	local IsDedicated = IsDedicated
 	IsDedicatedHost = IsDedicated
 	IsDedicatedServer = IsDedicated
+
+	IfDedicated = immutable_lambdaif(IsDedicated)
 
 	-- Returns an __index metamethod.
 	function LazyCopier(source, filter)

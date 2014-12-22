@@ -28,7 +28,7 @@ function AddSaveIndexPostInit(fn)
 end
 
 
-TheMod:EmbedHook("SaveIndex", AddSaveIndexPostInit, "post")
+TheMod:EmbedHook("AddSaveIndexPostInit", AddSaveIndexPostInit)
 
 
 return AddSaveIndexPostInit

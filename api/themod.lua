@@ -148,6 +148,10 @@ function ModCheck(self)
 	assert( Pred.IsMod(self), "Don't forget to use ':'!" )
 end
 
+function Mod:GetEnvironment()
+	return _M
+end
+
 function Mod:IsDev()
 	ModCheck(self)
 	return self:GetBranch() == "DEV"
@@ -210,13 +214,53 @@ end
 function Mod:EmbedAdder(id, fn)
 	ModCheck(self)
 	assert( Pred.IsWordable(id) )
-	id = tostring(id)
+
+	id = tostring(id):gsub("^Add([A-Z])", "%1")
 
 	local specs_table = self[initspec_key].add
 	local wrapper = self.Add
-	local full_name = "Add" .. id
+
+
+	local full_name = "Add"..id
 	
 	EmbedPlugin(self, specs_table, wrapper, full_name, id, fn)
+end
+
+local hook_whens = {
+	"Post",
+	"Pre",
+}
+
+local hook_match_strings = {}
+for _, when in ipairs(hook_whens) do
+	table.insert(hook_match_strings, "^(.+)"..when.."([A-Z].*)$")
+end
+
+local function BreakHookName(str)
+	for i, matcher in ipairs(hook_match_strings) do
+		local what, condition = string.match(str, matcher)
+		if what ~= nil then
+			return what, hook_whens[i], condition
+		end
+	end
+end
+
+local function BashHookName(str)
+	local what, when, condition = BreakHookName(str)
+	if what == nil then
+		return error("Invalid hook name '"..str.."'.", 2)
+	end
+	return what, when, condition
+end
+
+local function EmbedBrokenDownHook(self, fn, what, when, condition)
+	local specs_table = self[initspec_key].hook
+	local wrapper = self.AddHook
+
+	local id = condition..what
+	local full_name = "Add"..what..when..condition
+
+	EmbedPlugin(self, specs_table, wrapper, full_name, id, fn).when = when:lower()
 end
 
 --[[
@@ -229,71 +273,13 @@ end
 --
 -- @param when (optional) Should be "post" or "pre", defaulting to "post".
 --]]
-function Mod:EmbedHook(id, fn, when)
+function Mod:EmbedHook(name, fn)
 	ModCheck(self)
-	assert( Pred.IsWordable(id) )
+	assert( Pred.IsWordable(name) )
 
-	id = tostring(id):gsub("^Add", "")
-	local suffix
-	do
-		local id_stem, modifier, basic_suffix
+	name = tostring(name):gsub("^Add([A-Z])", "%1")
 
-		id_stem, modifier = id:match("^(.+)Any$")
-		if id_stem then
-			id = id_stem
-			modifier = "Any"
-		else
-			modifier = ""
-		end
-
-		id_stem = id:match("^(.+)Init$")
-		if id_stem then
-			id = id_stem
-			basic_suffix = "Init"
-		else
-			id_stem = id:match("^(.+)Load$")
-			if id_stem then
-				id = id_stem
-				basic_suffix = "Load"
-			else
-				basic_suffix = ""
-			end
-		end
-
-		suffix = basic_suffix..modifier
-
-		id_stem = id:match("^(.+)Post$")
-		if id_stem then
-			id = id_stem
-			when = "post"
-		else
-			id_stem = id:match("^(.+)Pre$")
-			if id_stem then
-				id = id_stem
-				when = "pre"
-			end
-		end
-	end
-
-	when = when or "post"
-	assert( Pred.IsWordable(when) )
-	when = tostring(when)
-	local when_lower = when:lower()
-
-	if when_lower == "post" then
-		when = "Post"
-	elseif when_lower == "pre" then
-		when = "Pre"
-	else
-		return error(("Invalid `when' parameter %q given to EmbedHook."):format(when), 2)
-	end
-
-	local specs_table = self[initspec_key].hook
-	local wrapper = self.AddHook
-	local full_name = "Add" .. id .. when .. suffix
-	id = suffix..id
-
-	EmbedPlugin(self, specs_table, wrapper, full_name, id, fn).when = when:lower()
+	EmbedBrokenDownHook(self, fn, BashHookName(name))
 end
 
 
@@ -305,10 +291,11 @@ function Mod:SlurpEnvironment(env, overwrite)
 
 	for k, v in pairs(env) do
 		if type(k) == 'string' and Lambda.IsFunctional(v) then
-			local stem = k:match('^Add([A-Z].+)$')
+			local stem = k:match('^Add([A-Z].*)$')
 			if stem and (overwrite or rawget(self, k) == nil) then
-				if stem:match("Init") and not stem:match("Init[a-z]") then
-					self:EmbedHook(stem, v)
+				local what, when, condition = BreakHookName(stem)
+				if what then
+					EmbedBrokenDownHook(self, v, what, when, condition)
 				else
 					self:EmbedAdder(stem, v)
 				end

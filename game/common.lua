@@ -70,4 +70,5 @@ end
 
 AddSelfPostInit(function()
 	pkgrequire "searching"
+	pkgrequire "misc"
 end)

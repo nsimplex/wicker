@@ -41,18 +41,27 @@ for _, k in ipairs{
 end
 
 
-function IsType(t)
-	return function(x)
+local is_type_cache = {}
+local function is_type(t)
+	local ret = function(x)
 		return type(x) == t
 	end
+	is_type_cache[t] = ret
+	return ret
 end
 
-IsFunction = IsType "function"
-IsNumber = IsType "number"
-IsBoolean = IsType "boolean"
-IsString = IsType "string"
-IsTable = IsType "table"
+IsFunction = is_type "function"
+IsNumber = is_type "number"
+IsBoolean = is_type "boolean"
+IsString = is_type "string"
+IsTable = is_type "table"
 IsNil = Lambda.IsNil
+
+is_type_cache["nil"] = Lambda.IsNil
+
+function IsType(t)
+	return is_type_cache[t]
+end
 
 
 function IsPrivate(x)
@@ -77,7 +86,7 @@ end
 IsNonNegative = LambdaNot(IsNegative)
 IsNonPositive = LambdaNot(IsPositive)
 
-function IsInteger(n) return IsNumber(n) and n == math.floor(n) end
+function IsInteger(n) return IsNumber(n) and n%1 == 0 end
 
 for _,v in ipairs {"Positive", "Negative", "NonNegative", "NonPositive"} do
 	_M["Is" .. v .. "Number"] = LambdaAnd(IsNumber, _M["Is" .. v])
@@ -102,6 +111,10 @@ function HasMetaMethod(method)
 end
 
 IsCallableTable = LambdaAnd(IsTable, HasMetaMethod("call"))
+
+function IsArrayOf(p)
+	return LambdaAnd(IsTable, Lambda.Compose(Lambda.BindFirst(ForAll, p), ipairs))
+end
 
 function IsObject(x)
 	return type(x) == "table" and type(x.is_a) == "function"
@@ -170,6 +183,11 @@ IsNewIndexable = LambdaOr( IsTable, HasMetaMethod("newindex") )
 
 IsVector3 = IsInstanceOf(Vector3)
 IsPoint = IsInstanceOf(Point)
+
+if not IsWorldgen() then
+	require "entityscript"
+	EntityScript = _G.EntityScript
+end
 
 if IsWorldgen() or not EntityScript then
 	IsEntityScript = Lambda.False
