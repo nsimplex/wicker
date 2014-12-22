@@ -140,14 +140,6 @@ return function()
 		AddKernelLazyVariable("TheWorld", GetWorld)
 	end
 
-	require "recipe"
-	if IsDST() then
-		AllRecipes = _G.AllRecipes
-	else
-		AllRecipes = _G.Recipes
-	end
-	Recipes = AllRecipes
-
 	if IsDST() then
 		TryPause = Lambda.Nil
 	else
@@ -158,6 +150,14 @@ return function()
 
 	SetPause = Rest.ForbiddenFunction("SetPause")
 
+	require "recipe"
+	if IsDST() then
+		AllRecipes = _G.AllRecipes
+	else
+		AllRecipes = _G.Recipes
+	end
+	Recipes = AllRecipes
+
 	if IsDST() then
 		function GetRecipe(name)
 			return _G.AllRecipes[name]
@@ -167,6 +167,15 @@ return function()
 			require "recipe"
 			return _G.GetRecipe
 		end)
+	end
+
+	if VarExists "Label" then
+		local Label = _G.Label
+		if Label.SetPos == nil then
+			Label.SetPos = assert( Label.SetPosition )
+		elseif Label.SetPosition == nil then
+			Label.SetPosition = assert( Label.SetPos )
+		end
 	end
 
 	---

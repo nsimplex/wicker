@@ -239,9 +239,7 @@ Net_classes.NetSignal = NetSignal
 _M.NetSignal = NetSignal
 
 function NetSignal:Send()
-	local r = self._raw
-	r:set_local(true)
-	r:set(true)
+	self:ForceSync(true)
 end
 
 NetSignal.__call = NetSignal.Send

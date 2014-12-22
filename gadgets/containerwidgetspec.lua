@@ -227,12 +227,13 @@ function CWS:SetupSlotsLine(data)
 	local num = self:GetNumSlots()
 	local slotpos = {}
 
-	for factor = 0.5 + math.ceil(num/2) - 1, -(0.5 + math.floor(num/2) - 1), -1 do
+	for factor = -(0.5 + math.floor(num/2) - 1), 0.5 + math.ceil(num/2) - 1 do
 		table.insert( slotpos, full_offset + dir*(factor*full_length) )
 	end
 
 	self:SetSlotPosTable(slotpos)
 	if num > 0 then
+		print("LAST SLOT: "..tostring(slotpos[num]))
 		return slotpos[num]
 	end
 end

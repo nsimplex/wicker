@@ -1,5 +1,4 @@
 BecomePackage "common"
-local replica = replica
 
 local Lambda = wickerrequire "paradigms.functional"
 
