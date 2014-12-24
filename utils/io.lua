@@ -32,17 +32,22 @@ function NewSayer(prefix)
 			actual_prefix = ""
 		end
 
-		nolineprint(table.concat(Lambda.CompactlyMapInto(
-			tostring,
-			{
-				os.date("[%X]"),
-				" (",
-				tostring( TheMod.Modname ),
-				") ",
-				actual_prefix
-			},
-			ipairs {...}
-		)))
+		local args = {...}
+		local nargs = select("#", ...)
+
+		local chunks = {
+			os.date("[%X]"),
+			" (",
+			tostring( TheMod.Modname ),
+			") ",
+			actual_prefix
+		}
+
+		for i = 1, nargs do
+			table.insert(chunks, tostring(args[i]))
+		end
+
+		nolineprint(table.concat(chunks))
 	end
 end
 

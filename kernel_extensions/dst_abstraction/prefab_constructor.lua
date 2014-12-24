@@ -54,7 +54,7 @@ local GetPostConstructs, ClearPostConstructs = (function()
 end)()
 
 local function AddThreadPostConstruct(co, fn)
-	if IsConstructionThread(co) then
+	if not IsConstructionThread(co) then
 		return OuterError("Attempt to attach post construct outside of a construction thread! [co = "..tostring(co).."]")
 	end
 	table.insert(GetPostConstructs(co), fn)

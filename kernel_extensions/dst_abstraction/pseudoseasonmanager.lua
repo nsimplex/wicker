@@ -209,7 +209,7 @@ do
 end
 
 defineSeasonMethods(PseudoSM, "Is%s", function(self, season)
-	return self:GetSeaason() == season
+	return self:GetSeason() == season
 end)
 
 PseudoSM.GetSnowPercent = WSGetter("snowlevel")

@@ -29,7 +29,6 @@ local submodules = {
 	"dst_abstraction",
 }
 
-
 local function doextend(kernel)
 	for _, subm in ipairs(submodules) do
 		local extender = pkgrequire("kernel_extensions."..subm)

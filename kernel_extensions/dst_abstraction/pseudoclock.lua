@@ -110,6 +110,35 @@ local definePhaseMethods = PU.NewGenericMethodDefiner(PHASES)
 
 ---
 
+local function aging_method(fn)
+	if not IsDST() then
+		return fn
+	end
+
+	return function(self, ...)
+		local cycle0 = self:GetNumCycles()
+		local norm0 = self:GetNormTime()
+
+		fn(self, ...)
+
+		local cycle = self:GetNumCycles()
+		local norm = self:GetNormTime()
+
+		local norm_dt = (cycle + norm) - (cycle0 + norm0)
+		local dt = norm_dt*TUNING.TOTAL_DAY_TIME
+
+		for _, player in ipairs(_G.AllPlayers) do
+			local age = player.components.age
+			if age then
+				TheMod:DebugSay("Aging player [", player, "] by ", norm_dt, " days.")
+				age:LongUpdate(dt)
+			end
+		end
+	end
+end
+
+---
+
 local function getTotalEraTime(self)
 	return self.segs[self:GetPhase()]*TUNING.SEG_TIME
 end
@@ -140,31 +169,16 @@ function MasterPseudoClock:SetNormEraTime(percent)
 	local t0 = self:GetTimeInEra()
 	local total_t = getTotalEraTime(self)
 
-	self.inst.components.clock:LongUpdate(total_t*percent - t0)
+	self:LongUpdate(total_t*percent - t0)
 end
 
-PseudoClock.GetTimeInEra = WSGetter("timeinphase")
-
-function PseudoClock:GetNormEraTime()
-	local total = getTotalEraTime(self)
-	if total <= 0 then return 1 end
-
-    return self:GetTimeInEra()/total
+function PseudoClock:GetTimeInEra()
+	return self:GetNormEraTime()*getTotalEraTime(self)
 end
 
-function PseudoClock:GetNormTime()
-	local ret = 0
+PseudoClock.GetNormEraTime = WSGetter("timeinphase")
 
-	local phase = self:GetPhase()
-	local phase_pos = PHASE_ORDER[phase]
-
-	for i = 1, phase_pos - 1 do
-		ret = ret + self.segs[PHASES[i]]
-	end
-	ret = ret + self.segs[PHASES[phase_pos]]*self:GetNormEraTime()
-
-	return ret/NUM_SEGS
-end
+PseudoClock.GetNormTime = WSGetter("time")
 
 function PseudoClock:CurrentPhaseIsAlways()
 	return self.segs[self:GetPhase()] == NUM_SEGS
@@ -192,7 +206,12 @@ PseudoClock.GetNextPhase = Lambda.BindSecond(getShiftedPhase, 1)
 
 PseudoClock.GetPrevPhase = Lambda.BindSecond(getShiftedPhase, -1)
 
-MasterPseudoClock.MakeNextDay = PushWET("ms_nextcycle")
+MasterPseudoClock.MakeNextDay = aging_method(function(self)
+	local cycles = self:GetNumCycles()
+	PushWE("ms_nextcycle", nil, self)
+	PushWE("cycleschanged", cycles + 1, self)
+	self.inst.net.components.clock:LongUpdate(0.5*TUNING.SEG_TIME)
+end)
 
 function MasterPseudoClock:MakeNextDusk()
 	if self:IsDay() then
@@ -200,7 +219,19 @@ function MasterPseudoClock:MakeNextDusk()
 	end
 end
 
-MasterPseudoClock.NextPhase = PushWET("ms_nextphase")
+local internal_NextPhase = aging_method(function(self)
+	local next_phase = self:GetNextPhase()
+	PushWE("ms_nextphase", nil, self)
+	PushWE("phasechanged", next_phase, self)
+end)
+
+function MasterPseudoClock:NextPhase()
+	if self:GetPhase() == PHASES[#PHASES] then
+		return self:MakeNextDay()
+	else
+		return internal_NextPhase(self)
+	end
+end
 
 definePhaseMethods(PseudoClock, "Get%sSegs", function(self, phase)
 	return self.segs[phase]
@@ -214,13 +245,13 @@ function MasterPseudoClock:DoLightningLighting(maxlight)
 	PushWE("screenflash", maxlight or 1, self)
 end
 
-function MasterPseudoClock:LongUpdate(dt)
-	return self.inst.components.clock:LongUpdate(dt)
-end
+MasterPseudoClock.LongUpdate = aging_method(function(self, dt)
+	return self.inst.net.components.clock:LongUpdate(dt)
+end)
 
-function MasterPseudoClock:OnUpdate(dt)
-	return self.inst.components.clock:OnUpdate(dt)
-end
+MasterPseudoClock.OnUpdate = aging_method(function(self, dt)
+	return self.inst.net.components.clock:OnUpdate(dt)
+end)
 
 function PseudoClock:LerpAmbientColour(src, dest, time)
 	return AL.LerpAmbientColour(src, dest, time)

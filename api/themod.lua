@@ -43,6 +43,7 @@ local Mod = Class(Debuggable, function(self)
 	Debuggable._ctor(self, 'TheMod', false)
 
 	self[initspec_key] = { add = {}, hook = {} }
+	self.is_running = false
 
 
 	--[[
@@ -107,6 +108,7 @@ local Mod = Class(Debuggable, function(self)
 		assert( Pred.IsWordable(mainname), "The main's name should be a string." )
 		mainname = tostring(mainname)
 
+		self.is_running = true
 		local Rets = {raw_Run(self, mainname, ...)}
 
 		--[[
@@ -128,6 +130,7 @@ local Mod = Class(Debuggable, function(self)
 		ran_set[mainname] = true
 		postruns(mainname, ...)
 
+		self.is_running = false
 		return unpack(Rets)
 	end
 
@@ -150,6 +153,10 @@ end
 
 function Mod:GetEnvironment()
 	return _M
+end
+
+function Mod:IsRunning()
+	return self.is_running or false
 end
 
 function Mod:IsDev()
@@ -327,7 +334,7 @@ end
 local function call_add_fn(self, spec, ...)
 	if self:Debug() then
 		local ArgNames = Lambda.CompactlyMap(utils.toreadable, ipairs{...})
-		self:Notify('Calling ', spec.full_name, '(' .. table.concat(ArgNames, ', '), ')')
+		self:Say('Calling ', spec.full_name, '(' .. table.concat(ArgNames, ', '), ')')
 	end
 
 	local Rets = {spec.fn( ... )}

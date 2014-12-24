@@ -178,9 +178,12 @@ local function bootstrap(env, boot_params)
 	end)()
 end
 
-local function extend_kernel()
+local function extend_self()
 	local kernel_extender = wickerrequire "kernel_extensions"
 	kernel_extender(kernel)
+
+	local api_extender = wickerrequire "api_extensions"
+	api_extender()
 end
 
 local process_mod_environment = (function()
@@ -228,7 +231,7 @@ local process_mod_environment = (function()
 		TheMod:SlurpEnvironment(env, overwrite)
 
 		if first_run then
-			extend_kernel()
+			extend_self()
 			first_run = false
 		end
 	end

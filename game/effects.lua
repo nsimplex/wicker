@@ -182,7 +182,13 @@ end
 if IsDST() then
 	function ShakeCamera(inst, source_inst, shakeType, duration, speed, maxShake, maxDist)
 		if not inst.ShakeCamera then return end
-		return inst:ShakeCamera(shakeType, duration, speed, maxShake, source_inst, maxDist)
+
+		local typeid = _G.CAMERASHAKE[shakeType]
+		if typeid == nil then
+			return error("Invalid shake type '"..tostring(shakeType).."'.", 2)
+		end
+
+		return inst:ShakeCamera(typeid, duration, speed, maxShake, source_inst, maxDist)
 	end
 else
 	function ShakeCamera(inst, source_inst, shakeType, duration, speed, maxShake, maxDist)

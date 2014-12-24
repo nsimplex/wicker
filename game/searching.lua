@@ -199,3 +199,7 @@ GetClosestPlayerInRange = FindClosestPlayerInRange
 
 FindClosestPlayersInRange = MakeBoundedPlayerSearcher(basic_finders.closests)
 GetClosestPlayersInRange = FindClosestPlayersInRange
+
+---
+
+return _M

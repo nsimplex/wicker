@@ -48,19 +48,37 @@ if IsWorldgen() then
 	AddLocalPlayerPostActivation = Lambda.Nil
 elseif IsDST() then
 	local postactivations = FunctionQueue()
+
 	TheMod:AddPrefabPostInit("world", function(wrld)
 		wrld:ListenForEvent("playeractivated", function(wlrd, player)
 			if player == _G.ThePlayer then
 				postactivations(player)
+				postactivations = nil
 			end
 		end)
 	end)
 
 	AddLocalPlayerPostActivation = function(fn)
-		table.insert(postactivations, fn)
+		if postactivations ~= nil then
+			table.insert(postactivations, fn)
+		else
+			return fn( assert(_G.ThePlayer) )
+		end
 	end
 else
-	AddLocalPlayerPostActivation = assert(modenv.AddSimPostInit)
+	local doAddLocalPlayerPostActivation = assert(modenv.AddSimPostInit)
+
+	doAddLocalPlayerPostActivation(function()
+		doAddLocalPlayerPostActivation = nil
+	end)
+
+	AddLocalPlayerPostActivation = function(fn)
+		if doAddLocalPlayerPostActivation ~= nil then
+			return doAddLocalPlayerPostActivation(fn)
+		else
+			return fn( assert(_G.GetPlayer()) )
+		end
+	end
 end
 TheMod:EmbedHook("LocalPlayerPostActivation", AddLocalPlayerPostActivation)
 

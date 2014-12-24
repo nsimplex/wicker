@@ -208,6 +208,10 @@ return function()
 			"PrefabExists",
 
 			"GetTime",
+			"GetTick",
+			"GetTimeReal",
+
+			"FRAMES",
 			
 			"GetGroundTypeAtPosition",
 

@@ -1,5 +1,10 @@
+local NETVARS_DEBUG = false
+
+---
+
 local Lambda = wickerrequire "paradigms.functional"
 local Pred = wickerrequire "lib.predicates"
+local FunctionQueue = wickerrequire "gadgets.functionqueue"
 
 if IsWorldgen() then
 	init = Lambda.Nil
@@ -14,25 +19,59 @@ local rawget, rawset = rawget, rawset
 
 ---
 
+local function debug_ondirty(inst, self)
+	TheMod:Say("ondirty: ", self, " = ", self:ForceGetValue())
+end
+
 local BasicNetVar = Class(function(self, inst, varname)
 	assert(Pred.IsEntityScript(inst), "Entity expected as 'inst' parameter of BasicNetVar constructor.")
 	rawset(self, "inst", inst)
 
+	rawset(self, "varname", varname)
 	rawset(self, "dirty_eventname", varname.."_dirty")
+
+	rawset(self, "ondirty_queue", FunctionQueue())
+
+	self.inst:ListenForEvent(self.dirty_eventname, function(inst)
+		self.ondirty_queue(inst, self)
+	end)
+
+	if NETVARS_DEBUG then
+		self:AddOnDirtyFn(debug_ondirty)
+	end
 end)
 Pred.IsNetVar = Pred.IsInstanceOf(BasicNetVar)
+
+function BasicNetVar:GetInst()
+	return rawget(self, "inst")
+end
+
+function BasicNetVar:GetName()
+	return rawget(self, "varname")
+end
 
 function BasicNetVar:GetOnDirtyEventName()
 	return self.dirty_eventname
 end
 
 function BasicNetVar:AddOnDirtyFn(ondirtyfn)
-	return self.inst:ListenForEvent(self.dirty_eventname, ondirtyfn)
+	table.insert(self.ondirty_queue, ondirtyfn)
 end
 
 function BasicNetVar:RemoveOnDirtyFn(ondirtyfn)
-	return self.inst:RemoveEventCallback(self.dirty_eventname, ondirtyfn)
+	for i, fn in ipairs(self.ondirty_queue) do
+		if fn == ondirtyfn then
+			table.remove(self.ondirty_queue, i)
+			return
+		end
+	end
 end
+
+function BasicNetVar:GetDebugString()
+	return "["..tostring(self:GetInst()).."]."..tostring(self:GetName())
+end
+
+BasicNetVar.__tostring = BasicNetVar.GetDebugString
 
 ---
 
@@ -79,7 +118,15 @@ end)()
 
 ---
 
-local function NewNetVarClass(spec, classname)
+local function NetVarClass(...)
+	local C = Class(...)
+
+	configureAccessors(C)
+
+	return C
+end
+
+local function NewNetVarClassFromSpec(spec, classname)
 	local raw_net_type = assert( spec.raw_net_type )
 
 	local validate_arg = assert( spec.validate_arg )
@@ -89,7 +136,7 @@ local function NewNetVarClass(spec, classname)
 
 	local cache_key = {}
 
-	local C = Class(BasicNetVar, function(self, inst, varname)
+	local C = NetVarClass(BasicNetVar, function(self, inst, varname)
 		assert(Pred.IsValidEntity(inst))
 		assert(Pred.IsString(varname))
 		BasicNetVar._ctor(self, inst, varname)
@@ -223,14 +270,12 @@ local function NewNetVarClass(spec, classname)
 		end
 	end
 
-	configureAccessors(C)
-
 	return C
 end
 
 ---
 
-local Net_classes = Lambda.Map(NewNetVarClass, pairs(net_types))
+local Net_classes = Lambda.Map(NewNetVarClassFromSpec, pairs(net_types))
 Lambda.InjectInto(_M, pairs(Net_classes))
 
 ---
@@ -244,7 +289,7 @@ NetBool.__call = assert( NetBool.SetValue )
 
 ---
 
-local NetSignal = Class(NetBool, function(self, inst, varname)
+local NetSignal = NetVarClass(NetBool, function(self, inst, varname)
 	NetBool._ctor(self, inst, varname)
 end)
 Net_classes.NetSignal = NetSignal
