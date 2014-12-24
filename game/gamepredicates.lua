@@ -18,7 +18,7 @@ function IsValidPoint(pt)
 end
 
 IsUnblockedPoint = (function()
-	local not_tags = {'NOBLOCK', 'player', 'FX', "INLIMBO", "DECOR"}
+	local not_tags = {"NOBLOCK", "FX", "INLIMBO", "DECOR"} -- "player"
 
 	return function(pt, blocking_radius, fn)
 		if IsValidPoint(pt) then

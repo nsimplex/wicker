@@ -232,11 +232,17 @@ Net_classes.NetUShort = assert( Net_classes.NetShortUInt )
 
 ---
 
+NetBool.__call = assert( NetBool.SetValue )
+
+---
+
 local NetSignal = Class(NetBool, function(self, inst, varname)
 	NetBool._ctor(self, inst, varname)
 end)
 Net_classes.NetSignal = NetSignal
 _M.NetSignal = NetSignal
+
+NetSignal.Connect = assert( NetSignal.AddOnDirtyFn )
 
 function NetSignal:Send()
 	self:ForceSync(true)

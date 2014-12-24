@@ -171,10 +171,23 @@ return function()
 
 	if VarExists "Label" then
 		local Label = _G.Label
-		if Label.SetPos == nil then
-			Label.SetPos = assert( Label.SetPosition )
-		elseif Label.SetPosition == nil then
-			Label.SetPosition = assert( Label.SetPos )
+
+		local method_names = {"SetPos", "SetPosition", "SetUIOffset"}
+
+		local method = nil
+		for _, name in ipairs(method_names) do
+			local v = Label[name]
+			if v ~= nil then
+				method = v
+				break
+			end
+		end
+		assert(method, "Unable to find method equivalent to singleplayer's inst.Label:SetPos(x, y, z).")
+
+		for _, name in ipairs(method_names) do
+			if Label[name] == nil then
+				Label[name] = method
+			end
 		end
 	end
 
