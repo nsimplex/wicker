@@ -142,11 +142,19 @@ local function NewNetVarClass(spec, classname)
 
 	if IsDST() then
 		local function map_into(self, v)
-			return encode(apply_scale(self, v))
+			if v == nil then
+				return nil
+			else
+				return encode(apply_scale(self, v))
+			end
 		end
 
 		local function map_outof(self, w)
-			return unapply_scale(self, decode(w))
+			if w == nil then
+				return nil
+			else
+				return unapply_scale(self, decode(w))
+			end
 		end
 
 		function C:ForceGetValue()

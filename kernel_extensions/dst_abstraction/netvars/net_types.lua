@@ -176,6 +176,7 @@ local function get_decoder(spec)
 		if x > MAX then
 			return x + m_MODULO
 		end
+		return x
 	end
 end
 
