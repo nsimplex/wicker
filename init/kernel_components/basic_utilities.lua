@@ -100,7 +100,7 @@ return function()
 	IfSingleplayer = immutable_lambdaif(IsSingleplayer)
 
 	local function is_vacuously_host()
-		return IsWorldgen or not IsMultiplayer()
+		return IsWorldgen() or not IsMultiplayer()
 	end
 
 	IsHost = memoize_0ary(function()

@@ -15,20 +15,40 @@ end
 
 if IsDST() then
 	require "entityscript"
+
+	local SHOULD_FAKE_SERVER_MODNAMES = false
+
+	_G.ModManager.GetServerModsNames = (function()
+		local GetServerModsNames = assert( _G.ModManager.GetServerModsNames )
+
+		local modname = assert( modenv.modname )
+		local id = assert( modinfo.id )
+
+		local function modname_mapper(name)
+			if name == modname then
+				return id
+			else
+				return name
+			end
+		end
+
+		return function(self, ...)
+			local modlist = GetServerModsNames(self, ...)
+			if SHOULD_FAKE_SERVER_MODNAMES then
+				return Lambda.CompactlyMap(modname_mapper, ipairs(modlist))
+			else
+				return modlist
+			end
+		end
+	end)()
+
 	_G.Entity.AddNetwork = (function()
 		local AddNetwork = _G.Entity.AddNetwork
 
 		return function(self)
+			SHOULD_FAKE_SERVER_MODNAMES = true
 			local ret = AddNetwork(self)
-
-			local inst = assert( _G.Ents[self:GetGUID()] )
-
-			local mac_tbl = inst.actionreplica.modactioncomponents
-
-			local old_mac = assert( mac_tbl[modenv.modname] )
-			mac_tbl[modinfo.id] = old_mac
-			mac_tbl[modenv.modname] = nil
-
+			SHOULD_FAKE_SERVER_MODNAMES = false
 			return ret
 		end
 	end)()

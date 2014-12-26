@@ -29,13 +29,84 @@ local submodules = {
 	"dst_abstraction",
 }
 
+---
+
+local function traceback(start_level)
+	local getinfo = debug.getinfo
+
+	local pieces = {"stack traceback:"}
+
+	for lvl = (start_level or 1) + 1, math.huge do
+		local info = getinfo(lvl, "nSl")
+		if info == nil then break end
+
+		local is_C = (info.what == "C")
+		local is_tailcall = (info.source == "=(tail call)")
+
+		local src
+
+		local primary_location
+		if is_C then
+			primary_location = "[C]"
+		elseif is_tailcall then
+			primary_location = "(tail call)"
+		else
+			src = info.source
+			if src then
+				src = src:gsub("^@", "")
+			else
+				src = "???"
+			end
+			primary_location = src..":"..(info.currentline or "???")
+		end
+
+		local secondary_location
+		if is_C or is_tailcall then
+			secondary_location = "?"
+		elseif info.what == "main" then
+			secondary_location = "in main chunk"
+		else
+			local name = info.name
+			if name then
+				name = "'"..name.."'"
+			else
+				name = "<"..(src or "???")..">"
+			end
+			local modifier = info.namewhat
+			if modifier then
+				modifier = modifier.." "
+			else
+				modifier = ""
+			end
+			secondary_location = "in "..modifier.."function "..name
+		end
+
+		local subpieces = {
+			"\t",
+			primary_location,
+			": ",
+			secondary_location,
+		}
+
+		table.insert(pieces, table.concat(subpieces))
+	end
+
+	return table.concat(pieces, "\n")
+end
+
+---
+
 local function doextend(kernel)
+	kernel.traceback = traceback
+
 	for _, subm in ipairs(submodules) do
 		local extender = pkgrequire("kernel_extensions."..subm)
 		setfenv(extender, kernel)
 		extender(kernel)
 	end
 end
+
+---
 
 return function(kernel)
 	doextend(kernel)

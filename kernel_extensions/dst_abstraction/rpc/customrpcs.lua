@@ -84,7 +84,7 @@ if IsDST() then
 		if IsServer() then
 			SetupModRPCs(inst)
 		else
-			netvar:SetOnDirtyFn(SetupModRPCs)
+			netvar:AddOnDirtyFn(SetupModRPCs)
 		end
 	end)
 else

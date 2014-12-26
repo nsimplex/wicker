@@ -26,6 +26,8 @@ local FunctionQueue = wickerrequire "gadgets.functionqueue"
 
 pkgrequire "dst_abstraction.assumptions"
 
+pkgrequire "dst_abstraction.patches"
+
 local Rest = pkgrequire "dst_abstraction.restriction"
 
 local PseudoClock = pkgrequire "dst_abstraction.pseudoclock"
