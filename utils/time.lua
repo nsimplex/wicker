@@ -15,6 +15,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
+local _G = _G
+
+---
 
 local factored_time_meta = {
 	__tostring = function(t)
@@ -47,3 +50,30 @@ function FactorTime(dt)
 	)
 end
 Factor = FactorTime
+
+local function basic_time_formatter(fmt)
+	return function()
+		return os.date(fmt)
+	end
+end
+if IsWorldgen() then
+	TimeFormatter = basic_time_formatter
+else
+	local FMT_TICK_THRESHOLD = 15
+
+	function TimeFormatter(fmt)
+		local get_str = basic_time_formatter(fmt)
+
+		local next_tick = -math.huge
+		local str = nil
+
+		return function()
+			local tick = _G.GetTick()
+			if tick >= next_tick then
+				str = get_str()
+				next_tick = tick + FMT_TICK_THRESHOLD
+			end
+			return str
+		end
+	end
+end

@@ -1,52 +1,12 @@
 local Lambda = wickerrequire "paradigms.functional"
 
 if IsWorldgen() then
-	init = Lambda.Nil
-	return
+	return Lambda.Nil
 end
-
-local RPCManagers = pkgrequire "rpcmanagers"
-local ServerRPC = assert(RPCManagers.ServerRPC)
 
 ---
 
-local function basic_DoPlayerAction(player, action, target, invobject, pos)
-	_G.BufferedAction(player, target, action, invobject, pos):Do()
-end
-if IsDST() then
-	function ServerRPC.DoPlayerAction(player, action_code, action_mod_name, target, invobject, pos_x, pos_z)
-		local action_id
-		if action_mod_name then
-			local act_mod_idlist = _G.ACTION_MOD_IDS[action_mod_name]
-			if act_mod_idlist == nil then return end
-
-			action_id = act_mod_idlist[action_code]
-			if action_id == nil then return end
-		else
-			action_id = _G.ACTION_IDS[action_code]
-			if action_id == nil then return end
-		end
-
-		local action = _G.ACTIONS[action_id]
-		if action == nil then return end
-
-		local pos
-		if pos_x ~= nil or pos_z ~= nil then
-			pos = Point(pos_x, nil, pos_z)
-		end
-
-		return basic_DoPlayerAction(player, action, target, invobject, pos)
-	end
-	ServerRPC.DoPlayerAction:SetInterface(function(action, target, invobject, pos)
-		if pos == nil then
-			return action.code, action.mod_name, target, invobject
-		else
-			return action.code, action.mod_name, target, invobject, pos.x, pos.z
-		end
-	end)
-else
-	ServerRPC.DoPlayerAction = basic_DoPlayerAction
-end
+assert( ServerRPC )
 
 ---
 
@@ -76,7 +36,7 @@ if IsDST() then
 	local function GetEventCode(inst, event_name)
 		if event_name == nil then return end
 
-		local map = GetServerEventsMap(inst)
+		local map = GetServerEventsMap(inst, false)
 		if not map then return end
 
 		return map.tocode[event_name]
@@ -85,7 +45,7 @@ if IsDST() then
 	local function GetEventFromCode(inst, event_code)
 		if event_code == nil then return end
 
-		local map = GetServerEventsMap(inst)
+		local map = GetServerEventsMap(inst, false)
 		if not map then return end
 
 		return map.fromcode[event_code]
@@ -126,6 +86,4 @@ end
 
 ---
 
-function init(kernel)
-	kernel.RegisterServerEvent = RegisterServerEvent
-end
+return RegisterServerEvent

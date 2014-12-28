@@ -78,11 +78,11 @@ end)
 
 if not IsDST() then
 	function LerpAmbientColour(src, dest, time)
-		local clock = GetPseudoClock()
+		local clock = _G.GetClock()
 		if not src then
 			src = clock.currentColour
 		end
-		GetPseudoClock():LerpAmbientColour(src, dest, time)
+		clock:LerpAmbientColour(src, dest, time)
 	end
 else
 	function LerpAmbientColour(src, dest, time)

@@ -14,7 +14,11 @@ if IsDST() then
 	local code_key = {}
 
 	local function GetModRPCCode(inst)
-		return (inst or _G.TheWorld.net)[code_key].value
+		local v = (inst or _G.TheWorld.net)[code_key].value
+		if v <= 0 then
+			return error("No mod RPC dispatcher code configured for '"..tostring(modinfo.name).."'.")
+		end
+		return v
 	end
 
 	local function SetModRPCCode(code, inst)
@@ -79,6 +83,11 @@ if IsDST() then
 	end
 
 	TheMod:AddPrefabPostInit("world_network", function(inst)
+		if #mod_rpcs == 0 then
+			TheMod:Say("Mod '", modinfo.name, "' hasn't added custom RPCs, skipping hook.")
+			return
+		end
+		TheMod:Say("Hooking custom RPCs for mod '", modinfo.name, "'.")
 		local netvar = NetShortUInt(inst, modinfo.id..".rpc_code")
 		inst[code_key] = netvar
 		if IsServer() then

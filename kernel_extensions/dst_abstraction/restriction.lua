@@ -29,29 +29,6 @@ ForbiddenFunction = forbidden_function
 local forbidden_method = Lambda.BindFirst(forbidden_thing, "method")
 ForbiddenMethod = forbidden_method
 
-local function make_restricted_object(selffn, baseclass, restrictiontemplate, badcase)
-	local pseudoself = {}
-	for k, v in public_pairs(baseclass) do
-		if type(v) ~= "function" then
-			pseudoself[k] = v
-		elseif restrictiontemplate[k] then
-			pseudoself[k] = method_redirector(selffn, k)
-		else
-			pseudoself[k] = forbidden_method(k, badcase)
-		end
-	end
-	setmetatable(pseudoself, {
-		__index = function(_, k)
-			return selffn(pseudoself)[k]
-		end,
-		__newindex = function(_, k, v)
-			selffn(pseudoself)[k] = v
-		end,
-	})
-	return pseudoself
-end
-MakeRestrictedObject = make_restricted_object
-
 local function host_class(...)
 	local C = Class(...)
 	if not IsHost() then

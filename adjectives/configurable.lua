@@ -228,7 +228,15 @@ local LoadConfiguration
 
 
 local function LoadConfigurationFunction(root, cfg, name)
-	local schema = modrequire 'rc.schema'
+	local schema
+	do
+		local status
+		status, schema = pcall(modrequire, "rc.schema")
+
+		if not status then
+			schema = {}
+		end
+	end
 
 	if loaded_funcs[cfg] then return end
 	loaded_funcs[cfg] = true

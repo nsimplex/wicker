@@ -26,6 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 local submodules = {
+	"uuids",
+	"class",
 	"dst_abstraction",
 }
 
@@ -73,7 +75,7 @@ local function traceback(start_level)
 				name = "<"..(src or "???")..">"
 			end
 			local modifier = info.namewhat
-			if modifier then
+			if modifier and #modifier > 0 then
 				modifier = modifier.." "
 			else
 				modifier = ""
@@ -96,14 +98,86 @@ end
 
 ---
 
-local function doextend(kernel)
+local function dobasicextend(kernel)
+	local Lambda = wickerrequire "paradigms.functional"
+
+	kernel.Lambda = Lambda
+	kernel.Nil = Lambda.Nil
+
 	kernel.traceback = traceback
+
+	kernel.ptraceback = function(lvl)
+		TheMod:Say(traceback((lvl or 1) + 1))
+	end
+
+	if VarExists("IsDLCEnabled") then
+		kernel.IsDLCEnabled = _G.IsDLCEnabled
+	else
+		kernel.IsDLCEnabled = Lambda.False
+	end
+	if VarExists("IsDLCInstalled") then
+		kernel.IsDLCInstalled = _G.IsDLCInstalled
+	else
+		kernel.IsDLCInstalled = kernel.IsDLCEnabled
+	end
+	if VarExists("REIGN_OF_GIANTS") then
+		kernel.REIGN_OF_GIANTS = _G.REIGN_OF_GIANTS
+	else
+		kernel.REIGN_OF_GIANTS = 1
+	end
+
+	if VarExists("DONT_STARVE_APPID") then
+		kernel.DONT_STARVE_APPID = _G.DONT_STARVE_APPID
+	else
+		kernel.DONT_STARVE_APPID = 219740
+	end
+
+	if VarExists("DONT_STARVE_TOGETHER_APPID") then
+		kernel.DONT_STARVE_TOGETHER_APPID = _G.DONT_STARVE_TOGETHER_APPID
+	else
+		kernel.DONT_STARVE_TOGETHER_APPID = 322330
+	end
+
+	local GetSteamAppID
+	local has_TheSim = VarExists("TheSim")
+	if has_TheSim and _G.TheSim.GetSteamAppID then
+		GetSteamAppID = function()
+			return _G.TheSim:GetSteamAppID()
+		end
+	else
+		GetSteamAppID = function()
+			if IsDST() then
+				return DONT_STARVE_TOGETHER_APPID
+			else
+				return DONT_STARVE_APPID
+			end
+		end
+		if has_TheSim then
+			getmetatable(_G.TheSim).__index.GetSteamAppID = GetSteamAppID
+		end
+	end
+	kernel.GetSteamAppId = GetSteamAppID
+end
+
+local function doextend(kernel)
+	local the_kernel = kernel
+
+	local function get_the_kernel()
+		return the_kernel
+	end
+
+	AddPropertyTo(kernel, "kernel", get_the_kernel)
+
+	dobasicextend(kernel)
 
 	for _, subm in ipairs(submodules) do
 		local extender = pkgrequire("kernel_extensions."..subm)
-		setfenv(extender, kernel)
-		extender(kernel)
+		if type(extender) == "function" then
+			extender(kernel)
+		end
 	end
+
+	the_kernel = nil
 end
 
 ---

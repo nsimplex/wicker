@@ -125,18 +125,17 @@ return function(importer_metadata)
 		local _G = _G
 		local rawget = rawget
 		local getmetatable = getmetatable
-		local type = type
+
+		local AttachMetaIndexTo = AttachMetaIndexTo
+
+		local function global_get(_, k)
+			return rawget(_G, k)
+		end
 
 		return function()
-			local meta = assert( getmetatable(GetOuterEnvironment()) )
-			local oldindex = NormalizeMetaIndex(meta.__index)
-			meta.__index = function(obj, k)
-				local v = oldindex(obj, k)
-				if v ~= nil then
-					return v
-				end
-				return rawget(_G, k)
-			end
+			local outer_env = GetOuterEnvironment()
+			assert( getmetatable(outer_env) )
+			AttachMetaIndexTo(outer_env, global_get, true)
 		end
 	end)()
 end

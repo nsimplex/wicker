@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 return function()
+	local assert, error = assert( _G.assert ), assert( _G.error )
 	local type = assert( _G.type )
 	local rawget = assert( _G.rawget )
 	local rawset = assert( _G.rawset )
@@ -71,6 +72,12 @@ return function()
 			end
 		end
 	end
+
+	local unique_string = _G.tostring({})
+
+
+	---
+
 
 	IsWorldgen = memoize_0ary(function()
 		return rawget(_G, "SEED") ~= nil
@@ -188,90 +195,171 @@ return function()
 		end
 	end
 
-
-	function NormalizeMetaIndex(index_method)
-		if type(index_method) == "table" then
-				return function(_, k)
-						return index_method[k]
-				end
-		else
-				assert( type(index_method) == "function", "An index metamethod should either a table or a function." )
-				return index_method
-		end
-	end
-	local NormalizeMetaIndex = NormalizeMetaIndex
-
 	local function require_metatable(object)
 		local meta = getmetatable( object )
-		if not meta then
+		if meta == nil then
 			meta = {}
 			setmetatable( object, meta )
 		end
 		return meta
 	end
 
-	local function metaindexes_accessor(t, k)
-		local indexes = rawget(getmetatable(t), "__indexes")
-		if not indexes then return end
+	local function NewMetamethodChainer(name, tablehandler)
+		assert(type(name) == "string")
+		assert(tablehandler == nil or type(tablehandler) == "function")
 
-		for i = #indexes, 1, -1 do
-			local ind = indexes[i]
-			local v
-			if type(ind) == "function" then
-				v = ind(t, k)
+		local metakey = "__"..name
+		local metachainkey = {}
+
+		local function accessor(t, ...)
+			local chain = rawget(getmetatable(t), metachainkey)
+			if not chain then return end
+
+			for i = #chain, 1, -1 do
+				local metamethod = chain[i]
+				local v
+				if type(metamethod) == "function" then
+					v = metamethod(t, ...)
+				elseif tablehandler ~= nil then
+					v = tablehandler(metamethod, ...)
+				end
+				if v ~= nil then
+					return v
+				end
+			end
+		end
+
+		-- If last, it is put in front, because we are using a stack.
+		local function include(chain, newv, last)
+			if last then
+				table.insert(chain, 1, newv)
 			else
-				v = ind[k]
+				table.insert(chain, newv)
 			end
-			if v ~= nil then
-				return v
+			return chain
+		end
+
+		local function attach(t, fn, last)
+			local meta = require_metatable(t)
+
+			local chain = rawget(meta, metachainkey)
+			if chain then
+				include(chain, fn, last)
+			else
+				local oldfn = rawget(meta, metakey)
+				if oldfn then
+					rawset(meta, metachainkey, include({oldfn, nil}, fn, last))
+					rawset(meta, metakey, accessor)
+				else
+					rawset(meta, metakey, fn)
+				end
 			end
+
+			return t
+		end
+
+		local function count(t)
+			local meta = getmetatable(t)
+			if meta == nil then return 0 end
+
+			local chain = rawget(meta, metachainkey)
+			if chain then
+				return #chain
+			else
+				if rawget(meta, metakey) then
+					return 1
+				else
+					return 0
+				end
+			end
+		end
+
+		return attach, count
+	end
+
+	local function table_get(t, k)
+		return t[k]
+	end
+
+	local function table_set(t, k, v)
+		t[k] = v
+	end
+
+	AttachMetaIndexTo, CountMetaIndexes = NewMetamethodChainer("index", table_get)
+	local AttachMetaIndexTo, CountMetaIndexes = AttachMetaIndexTo, CountMetaIndexes
+
+	function AttachMetaIndex(fn, t, last)
+		return AttachMetaIndexTo(t, fn, last)
+	end
+
+	AttachMetaNewIndexTo, CountMetaNewIndexes = NewMetamethodChainer("newindex", table_set)
+	local AttachMetaNewIndexTo, CountMetaNewIndexes = AttachMetaNewIndexTo, CountMetaNewIndexes
+
+	function AttachMetaNewIndex(fn, t, last)
+		return AttachMetaNewIndexTo(t, fn, last)
+	end
+
+	local props_getters_metakey = {}
+	local props_setters_metakey = {}
+
+	local function property_index(object, k)
+		local props = rawget(getmetatable(object), props_getters_metakey)
+		if props == nil then return end
+
+		local fn = props[k]
+		if fn ~= nil then
+			return fn(object, k, props)
 		end
 	end
 
-	function AttachMetaIndex(fn, object)
+	local function property_newindex(object, k, v)
+		local props = rawget(getmetatable(object), props_setters_metakey)
+		if props == nil then return end
+
+		local fn = props[k]
+		if fn ~= nil then
+			fn(object, k, v, props)
+			return true
+		end
+	end
+
+	function AddPropertyTo(object, k, getter, setter)
 		local meta = require_metatable(object)
-
-		local indexes = rawget(meta, "__indexes")
-		if indexes then
-			table.insert(indexes, fn)
-		else
-			local oldfn = meta.__index
-			if oldfn then
-				rawset(meta, "__indexes", {oldfn, fn})
-				rawset(meta, "__index", metaindexes_accessor)
-			else
-				rawset(meta, "__index", fn)
+		if getter ~= nil then
+			local getters = rawget(meta, props_getters_metakey)
+			if not getters then
+				getters = {}
+				rawset(meta, props_getters_metakey, getters)
+				AttachMetaIndexTo(object, property_index)
 			end
+			getters[k] = getter
 		end
-
-		return object
-	end
-	local AttachMetaIndex = AttachMetaIndex
-
-	
-	local function lazy_var_index(object, k)
-		local meta = getmetatable(object)
-		local lazyhooks = meta and rawget(meta, "__lazy")
-		local fn = lazyhooks and lazyhooks[k]
-		if fn then
-			local v = fn(k, object)
-			if v ~= nil then
-				lazyhooks[k] = nil
-				object[k] = v
-				return v
+		if setter ~= nil then
+			local setters = rawget(meta, props_setters_metakey)
+			if not setters then
+				setters = {}
+				rawset(meta, props_setters_metakey, setters)
+				if CountMetaNewIndexes(object) == 0 then
+					AttachMetaNewIndexTo(object, rawset, true)
+				end
+				AttachMetaNewIndexTo(object, property_newindex)
 			end
+			setters[k] = setter
 		end
 	end
+	local AddPropertyTo = AddPropertyTo
 
 	function AddLazyVariableTo(object, k, fn)
-		local meta = require_metatable(object)
-		local lazyhooks = rawget(meta, "__lazy")
-		if not lazyhooks then
-			lazyhooks = {}
-			rawset(meta, "__lazy", lazyhooks)
-			AttachMetaIndex(lazy_var_index, object)
+		local function getter(object, k, props)
+			local v = fn(k, object)
+			if v ~= nil then
+				props[k] = nil
+				rawset(object, k, v)
+			end
+			return v
 		end
-		lazyhooks[k] = fn
+
+		return AddPropertyTo(object, k, getter)
 	end
 	local AddLazyVariableTo = AddLazyVariableTo
 

@@ -77,9 +77,16 @@ end
 
 ---
 
-local PseudoClock = PU.PseudoClass("PseudoClock", function(self, inst)
-	assert(IsDST(), "Attempt to create a PseudoClock object in singleplayer!")
+local ClockBase = require "components/clock"
+local PseudoClock = PU.PseudoClass("PseudoClock", ClockBase, function(self)
+	--assert(IsDST(), "Attempt to create a PseudoClock object in singleplayer!")
+
+	TheMod:Say( self.targetself )
+	TheMod:Say( self.targetself.inst )
+	local inst = TheWorld ~= nil and TheWorld or assert( self.targetself.inst )
+
 	assert(TheWorld == nil or inst == TheWorld)
+
 	self.inst = inst
 
 	self.segs = {day = nil, dusk = nil, night = nil}
@@ -98,6 +105,9 @@ end)
 -- Just a utility table.
 -- Methods set here are put in PseudoClock, except they raise an error when called if we are not the host.
 local MasterPseudoClock = PU.NewMasterSetter(PseudoClock, "PseudoClock")
+
+local API = PU.NewAPI(PseudoClock)
+local MasterAPI = PU.NewMasterSetter(API, "PseudoClock")
 
 ---
 
@@ -147,7 +157,7 @@ local function getRemainingEraTime(self)
 	return getTotalEraTime(self) - self:GetTimeInEra()
 end
 
-function PseudoClock:GetTimeLeftInEra()
+function API:GetTimeLeftInEra()
 	return getTotalEraTime(self) - self:GetTimeInEra()
 end
 
@@ -161,38 +171,38 @@ function PseudoClock:Reset()
 end
 ]]--
 
-function PseudoClock:GetMoonPhase()
+function API:GetMoonPhase()
 	return self.moonphase
 end
 
-function MasterPseudoClock:SetNormEraTime(percent)
+function MasterAPI:SetNormEraTime(percent)
 	local t0 = self:GetTimeInEra()
 	local total_t = getTotalEraTime(self)
 
 	self:LongUpdate(total_t*percent - t0)
 end
 
-function PseudoClock:GetTimeInEra()
+function API:GetTimeInEra()
 	return self:GetNormEraTime()*getTotalEraTime(self)
 end
 
-PseudoClock.GetNormEraTime = WSGetter("timeinphase")
+PseudoClock.GetNormEraTime = WSGetter("timeinphase")API.GetNormEraTime = WSGetter("timeinphase")
 
-PseudoClock.GetNormTime = WSGetter("time")
+PseudoClock.GetNormTime = WSGetter("time")API.GetNormTime = WSGetter("time")
 
-function PseudoClock:CurrentPhaseIsAlways()
+function API:CurrentPhaseIsAlways()
 	return self.segs[self:GetPhase()] == NUM_SEGS
 end
 
-MasterPseudoClock.SetNightVision = Lambda.Nil
+MasterAPI.SetNightVision = Lambda.Nil
 
-PseudoClock.IsNightVision = Lambda.False
+API.IsNightVision = Lambda.False
 
-definePhaseMethods(PseudoClock, "Is%s", function(self, phase)
+definePhaseMethods(API, "Is%s", function(self, phase)
 	return self:GetPhase() == phase	
 end)
 
-PseudoClock.GetPhase = WSGetter("phase")
+PseudoClock.GetPhase = WSGetter("phase")API.GetPhase = WSGetter("phase")
 
 local function getShiftedPhase(self, delta)
 	if self:CurrentPhaseIsAlways() then
@@ -202,18 +212,18 @@ local function getShiftedPhase(self, delta)
 	end
 end
 
-PseudoClock.GetNextPhase = Lambda.BindSecond(getShiftedPhase, 1)
+PseudoClock.GetNextPhase = Lambda.BindSecond(getShiftedPhase, 1)API.GetNextPhase = Lambda.BindSecond(getShiftedPhase, 1)
 
-PseudoClock.GetPrevPhase = Lambda.BindSecond(getShiftedPhase, -1)
+PseudoClock.GetPrevPhase = Lambda.BindSecond(getShiftedPhase, -1)API.GetPrevPhase = Lambda.BindSecond(getShiftedPhase, -1)
 
-MasterPseudoClock.MakeNextDay = aging_method(function(self)
+MasterAPI.MakeNextDay = aging_method(function(self)
 	local cycles = self:GetNumCycles()
 	PushWE("ms_nextcycle", nil, self)
 	PushWE("cycleschanged", cycles + 1, self)
 	self.inst.net.components.clock:LongUpdate(0.5*TUNING.SEG_TIME)
 end)
 
-function MasterPseudoClock:MakeNextDusk()
+function MasterAPI:MakeNextDusk()
 	if self:IsDay() then
 		return self:NextPhase()
 	end
@@ -225,7 +235,7 @@ local internal_NextPhase = aging_method(function(self)
 	PushWE("phasechanged", next_phase, self)
 end)
 
-function MasterPseudoClock:NextPhase()
+function MasterAPI:NextPhase()
 	if self:GetPhase() == PHASES[#PHASES] then
 		return self:MakeNextDay()
 	else
@@ -233,34 +243,38 @@ function MasterPseudoClock:NextPhase()
 	end
 end
 
-definePhaseMethods(PseudoClock, "Get%sSegs", function(self, phase)
+definePhaseMethods(API, "Get%sSegs", function(self, phase)
 	return self.segs[phase]
 end)
 
-function MasterPseudoClock:SetSegs(day, dusk, night)
+function MasterAPI:SetSegs(day, dusk, night)
 	PushWE("ms_setclocksegs", {day = day, dusk = dusk, night = night}, self)
 end
 
-function MasterPseudoClock:DoLightningLighting(maxlight)
+function MasterAPI:DoLightningLighting(maxlight)
 	PushWE("screenflash", maxlight or 1, self)
 end
 
-MasterPseudoClock.LongUpdate = aging_method(function(self, dt)
+MasterAPI.LongUpdate = aging_method(function(self, dt)
 	return self.inst.net.components.clock:LongUpdate(dt)
 end)
 
-MasterPseudoClock.OnUpdate = aging_method(function(self, dt)
+MasterAPI.OnUpdate = aging_method(function(self, dt)
 	return self.inst.net.components.clock:OnUpdate(dt)
 end)
 
-function PseudoClock:LerpAmbientColour(src, dest, time)
+function API:LerpAmbientColour(src, dest, time)
 	return AL.LerpAmbientColour(src, dest, time)
 end
 
-definePhaseMethods(PseudoClock, "Get%sTime", function(self, phase)
+definePhaseMethods(API, "Get%sTime", function(self, phase)
 	return self.segs[phase]*TUNING.SEG_TIME
 end)
 
-PseudoClock.GetNumCycles = WSGetter("cycles")
+API.GetNumCycles = WSGetter("cycles")
+
+if IsSingleplayer() then
+	API.Invert(ClockBase)
+end
 
 return PseudoClock

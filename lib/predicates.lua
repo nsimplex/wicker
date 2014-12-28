@@ -65,13 +65,13 @@ end
 
 
 function IsPrivate(x)
-	return x:match('^_')
+	return x:find('^_') ~= nil
 end
 
-IsPublic = LambdaNot(IsPrivate)
+IsPublic = Lambda.Not(IsPrivate)
 
 for _, access in ipairs {'Private', 'Public'} do
-	_M['Is' .. access .. 'String'] = LambdaAnd( IsString, _M['Is' .. access] )
+	_M['Is' .. access .. 'String'] = Lambda.And( IsString, _M['Is' .. access] )
 end
 
 
@@ -83,14 +83,14 @@ function IsNegative(x)
 	return x < 0
 end
 
-IsNonNegative = LambdaNot(IsNegative)
-IsNonPositive = LambdaNot(IsPositive)
+IsNonNegative = Lambda.Not(IsNegative)
+IsNonPositive = Lambda.Not(IsPositive)
 
 function IsInteger(n) return IsNumber(n) and n%1 == 0 end
 
 for _,v in ipairs {"Positive", "Negative", "NonNegative", "NonPositive"} do
-	_M["Is" .. v .. "Number"] = LambdaAnd(IsNumber, _M["Is" .. v])
-	_M["Is" .. v .. "Integer"] = LambdaAnd(IsInteger, _M["Is" .. v])
+	_M["Is" .. v .. "Number"] = Lambda.And(IsNumber, _M["Is" .. v])
+	_M["Is" .. v .. "Integer"] = Lambda.And(IsInteger, _M["Is" .. v])
 end
 
 function IsInClosedRange(a, b)
@@ -99,7 +99,7 @@ function IsInClosedRange(a, b)
 	end
 end
 
-IsProbability = LambdaAnd( IsNumber, IsInClosedRange(0, 1) )
+IsProbability = Lambda.And( IsNumber, IsInClosedRange(0, 1) )
 
 -- Returns the metamethod if it exists.
 function HasMetaMethod(method)
@@ -110,10 +110,10 @@ function HasMetaMethod(method)
 	end
 end
 
-IsCallableTable = LambdaAnd(IsTable, HasMetaMethod("call"))
+IsCallableTable = Lambda.And(IsTable, HasMetaMethod("call"))
 
 function IsArrayOf(p)
-	return LambdaAnd(IsTable, Lambda.Compose(Lambda.BindFirst(ForAll, p), ipairs))
+	return Lambda.And(IsTable, Lambda.Compose(Lambda.BindFirst(ForAll, p), ipairs))
 end
 
 function IsObject(x)
@@ -124,30 +124,40 @@ function IsClass(x)
 	return IsCallableTable(x) and type(rawget(x, "_ctor")) == "function"
 end
 
-function IsInstanceOf(C)
+IsInstanceOf = (function()
 	local getmetatable = getmetatable
 
-	local cache = {}
+	local cache = setmetatable({}, {__mode = "k"})
 
-	return function(x)
-		local m = getmetatable(x)
-		if m == nil then return false end
+	return function(C)
+		local is_instance_of_C = cache[C]
+		if is_instance_of_C == nil then
+			local is_superclass_of = setmetatable({}, {__mode = "k"})
 
-		local cached_res = cache[m]
-		if cached_res == nil then
-			cached_res = (IsObject(x) and x:is_a(C)) and true or false
-			cache[m] = cached_res
+			is_instance_of_C = function(x)
+				local m = getmetatable(x)
+				if m == nil then return false end
+
+				local is_superclass_of_x = is_superclass_of[m]
+				if is_superclass_of_x == nil then
+					is_superclass_of_x = (IsObject(x) and x:is_a(C)) and true or false
+					is_superclass_of[m] = is_superclass_of_x
+				end
+
+				return is_superclass_of_x
+			end
+
+			cache[C] = is_instance_of_C
 		end
-
-		return cached_res
+		return is_instance_of_C
 	end
-end
+end)()
 
 IsObjectOf = IsInstanceOf
 
 function IsClassOf(x)
 	if IsObject(x) then
-		local cache = {}
+		local cache = setmetatable({}, {__mode = "k"})
 
 		return function(C)
 			if C == nil then return false end
@@ -171,11 +181,11 @@ IsTypeOf = IsClassOf
 IsCallable = Lambda.IsFunctional
 IsFunctional = Lambda.IsFunctional
 
-IsStringable = LambdaOr( IsString, HasMetaMethod("tostring") )
+IsStringable = Lambda.Or( IsString, HasMetaMethod("tostring") )
 IsWordable = IsStringable
 
-IsIndexable = LambdaOr( IsTable, HasMetaMethod("index") )
-IsNewIndexable = LambdaOr( IsTable, HasMetaMethod("newindex") )
+IsIndexable = Lambda.Or( IsTable, HasMetaMethod("index") )
+IsNewIndexable = Lambda.Or( IsTable, HasMetaMethod("newindex") )
 
 
 -------------------------------------------------------------
@@ -203,17 +213,25 @@ function IsOk(inst)
 	return inst:IsValid() and not inst:IsInLimbo()
 end
 
-IsValidEntity = LambdaAnd( IsEntityScript, IsValid )
-IsOkEntity = LambdaAnd( IsEntityScript, IsOk )
+IsValidEntity = Lambda.And( IsEntityScript, IsValid )
+IsOkEntity = Lambda.And( IsEntityScript, IsOk )
 
 if not IsWorldgen() then
 	PrefabExists = _G.PrefabExists
+else
+	PrefabExists = Lambda.True
 end
 
 function IsPrefab(prefab)
-	return function(inst)
-		return inst.prefab == prefab
+	local cache = {}
+	local is_prefab = cache[prefab]
+	if is_prefab == nil then
+		is_prefab = function(inst)
+			return inst.prefab == prefab
+		end
+		cache[prefab] = is_prefab
 	end
+	return is_prefab
 end
 
 function HasTag(tag)
@@ -234,15 +252,15 @@ function HasTags(tags)
 end
 
 function IsPrefabEntity(prefab)
-	return LambdaAnd( IsEntityScript, IsPrefab(prefab) )
+	return Lambda.And( IsEntityScript, IsPrefab(prefab) )
 end
 
 function IsEntityWithTag(tag)
-	return LambdaAnd( IsEntityScript, HasTag(tag) )
+	return Lambda.And( IsEntityScript, HasTag(tag) )
 end
 
 function IsEntityWithTags(tags)
-	return LambdaAnd( IsEntityScript, HasTags(tags) )
+	return Lambda.And( IsEntityScript, HasTags(tags) )
 end
 
 

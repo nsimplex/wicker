@@ -72,9 +72,19 @@ translateSeasonEvents()
 
 ---
 
-local PseudoSeasonManager = PU.PseudoClass("PseudoSeasonManager", function(self, inst)
-	assert(IsDST(), "Attempt to create a PseudoSeasonManager object in singleplayer!")
+local SeasonBase
+if IsSingleplayer() then
+	SeasonBase = require "components/seasonmanager"
+else
+	SeasonBase = require "components/seasons"
+end
+
+local PseudoSeasonManager = PU.PseudoClass("PseudoSeasonManager", SeasonBase, function(self)
+	--assert(IsDST(), "Attempt to create a PseudoSeasonManager object in singleplayer!")
+	
+	local inst = TheWorld ~= nil and TheWorld or assert( self.targetself.inst )
 	assert(TheWorld == nil or inst == TheWorld)
+
 	self.inst = inst
 end)
 local PseudoSM = PseudoSeasonManager
@@ -83,6 +93,9 @@ local PseudoSM = PseudoSeasonManager
 -- Methods set here are put in PseudoSeasonManager, except they raise an error when called if we are not the host.
 local MasterPseudoSeasonManager = PU.NewMasterSetter(PseudoSeasonManager, "PseudoSeasonManager")
 local MasterPseudoSM = MasterPseudoSeasonManager
+
+local API = PU.NewAPI(PseudoSeasonManager)
+local MasterAPI = PU.NewMasterSetter(API, "PseudoSeasonManager")
 
 ---
 
@@ -100,12 +113,12 @@ local setSeasonMode = PushWET("ms_setseasonmode")
 ---
 
 -- TODO: change this when caves are supported in DST.
-PseudoSM.SetCaves = Lambda.Error("Caves are not supported yet.")
+API.SetCaves = Lambda.Error("Caves are not supported yet.")
 
-MasterPseudoSM.SetMoiustureMult = PushWET("ms_setmoisturescale")
-MasterPseudoSM.SetMoistureMult = MasterPseudoSM.SetMoiustureMult
+MasterAPI.SetMoiustureMult = PushWET("ms_setmoisturescale")
+MasterAPI.SetMoistureMult = MasterAPI.SetMoiustureMult
 
-defineSeasonMethods(MasterPseudoSM, "Endless%s", function(self, season, pre_length, rampup)
+defineSeasonMethods(MasterAPI, "Endless%s", function(self, season, pre_length, rampup)
 	-- pre_length and rampup are currently hardcoded constants in
 	-- components/seasons.lua, so the parameters are ignored.
 	
@@ -113,26 +126,26 @@ defineSeasonMethods(MasterPseudoSM, "Endless%s", function(self, season, pre_leng
 	setSeasonMode(self, "endless")
 end)
 
-defineSeasonMethods(MasterPseudoSM, "Always%s", function(self, season)
+defineSeasonMethods(MasterAPI, "Always%s", function(self, season)
 	setSeason(self, season)
 	setSeasonMode(self, "always")
 end)
 
-MasterPseudoSM.Cycle = Lambda.BindSecond(setSeasonMode, "cycle")
+MasterAPI.Cycle = Lambda.BindSecond(setSeasonMode, "cycle")
 
-MasterPseudoSM.AlwaysWet = PushWET("ms_setprecipitationmode", "always")
+MasterAPI.AlwaysWet = PushWET("ms_setprecipitationmode", "always")
 
-MasterPseudoSM.AlwaysDry = PushWET("ms_setprecipitationmode", "never")
+MasterAPI.AlwaysDry = PushWET("ms_setprecipitationmode", "never")
 
-function MasterPseudoSM:OverrideLightningDelays(min, max)
+function MasterAPI:OverrideLightningDelays(min, max)
 	PushWE("ms_setlightningmode", {min = min, max = max})
 end
 
-function MasterPseudoSM:DefaultLightningDelays()
+function MasterAPI:DefaultLightningDelays()
 	PushWE("ms_setlightningmode", {})
 end
 
-defineLightningModeMethods(MasterPseudoSM, "Lightning%s", PushWET("ms_setlightningmode"))
+defineLightningModeMethods(MasterAPI, "Lightning%s", PushWET("ms_setlightningmode"))
 
 local argsToSeasonTable
 if is_rog then
@@ -153,46 +166,46 @@ else
 	end
 end
 
-function MasterPseudoSM:SetSeasonLengths(...)
+function MasterAPI:SetSeasonLengths(...)
 	PushWE("ms_setseasonlengths", argsToSeasonTable(...), self)
 end
 
-function MasterPseudoSM:SetSegs(...)
+function MasterAPI:SetSegs(...)
 	PushWE("ms_setseasonclocksegs", argsToSeasonTable(...), self)
 end
 
-PseudoSM.GetCurrentTemperature = WSGetter("temperature")
+API.GetCurrentTemperature = WSGetter("temperature")
 
-PseudoSM.GetDaysLeftInSeason = WSGetter("remainingdaysinseason")
+API.GetDaysLeftInSeason = WSGetter("remainingdaysinseason")
 
-PseudoSM.GetDaysIntoSeason = WSGetter("elapseddaysinseason")
+API.GetDaysIntoSeason = WSGetter("elapseddaysinseason")
 
-PseudoSM.GetSeasonString = WSGetter("season")
+API.GetSeasonString = WSGetter("season")
 
-function PseudoSM:GetPercentSeason()
+function API:GetPercentSeason()
 	return self:GetDaysIntoSeason()/self:GetSeasonLength()
 end
 
-function MasterPseudoSM:ForcePrecip()
+function MasterAPI:ForcePrecip()
 	PushWE("ms_forceprecipitation", true)
 end
 
-function MasterPseudoSM:ForceStopPrecip()
+function MasterAPI:ForceStopPrecip()
 	PushWE("ms_forceprecipitation", false)
 end
 
-MasterPseudoSM.DoLightningStrike = PushWET("ms_sendlightningstrike")
+MasterAPI.DoLightningStrike = PushWET("ms_sendlightningstrike")
 
-PseudoSM.GetPOP = WSGetter("pop")
+API.GetPOP = WSGetter("pop")
 
-PseudoSM.GetPrecipitationRate = WSGetter("precipitationrate")
+API.GetPrecipitationRate = WSGetter("precipitationrate")
 
-PseudoSM.GetMoistureLimit = WSGetter("moistureceil")
+API.GetMoistureLimit = WSGetter("moistureceil")
 
-defineSeasonMethods(MasterPseudoSM, "Start%s", PushWET("ms_setseason"))
+defineSeasonMethods(MasterAPI, "Start%s", PushWET("ms_setseason"))
 
 -- Not a complete equivalence.
-function MasterPseudoSM:StartPrecip()
+function MasterAPI:StartPrecip()
 	self:ForcePrecip()
 	self.inst.components.weather:OnUpdate(0)
 end
@@ -203,36 +216,40 @@ do
 		len_strs[season] = season.."length"
 	end
 
-	function PseudoSM:GetSeasonLength()
+	function API:GetSeasonLength()
 		return WSGet(len_strs[self:GetSeason()], self)
 	end
 end
 
-defineSeasonMethods(PseudoSM, "Is%s", function(self, season)
+defineSeasonMethods(API, "Is%s", function(self, season)
 	return self:GetSeason() == season
 end)
 
-PseudoSM.GetSnowPercent = WSGetter("snowlevel")
+API.GetSnowPercent = WSGetter("snowlevel")
 
-MasterPseudoSM.Advance = PushWET("ms_advanceseason")
+MasterAPI.Advance = PushWET("ms_advanceseason")
 
-function PseudoSM:GetTemperature()
+function API:GetTemperature()
 	return self:GetCurrentTemperature()
 end
 
-MasterPseudoSM.Retreat = PushWET("ms_retreatseason")
+MasterAPI.Retreat = PushWET("ms_retreatseason")
 
 -- Not a complete equivalence.
-function MasterPseudoSM:StopPrecip()
+function MasterAPI:StopPrecip()
 	self:ForceStopPrecip()
 	self.inst.components.weather:OnUpdate(0)
 end
 
-PseudoSM.IsRaining = WSGetter("israining")
+API.IsRaining = WSGetter("israining")
 
-PseudoSM.GetSeason = WSGetter("season")
+API.GetSeason = WSGetter("season")
 
-PseudoSM.OnUpdate = Lambda.Nil
-PseudoSM.LongUpdate = Lambda.Nil
+API.OnUpdate = Lambda.Nil
+API.LongUpdate = Lambda.Nil
 
-return PseudoSM
+if IsSingleplayer() then
+	API.Invert(SeasonBase)
+end
+
+return PseudoSeasonManager

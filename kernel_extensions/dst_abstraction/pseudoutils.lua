@@ -25,6 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 local Lambda = wickerrequire "paradigms.functional"
 local Logic = wickerrequire "lib.logic"
 
+local Rest = pkgrequire "restriction"
+
 
 function InvertTable(t)
 	local u = {}
@@ -56,12 +58,42 @@ function NewMasterSetter(baseclass, baseclassname)
 end
 local NewMasterSetter = NewMasterSetter
 
-function PseudoClass(name, ...)
-	local C = Class(...)
-	local mt = getmetatable(C)
-	mt.__index = function(_, k)
-		return error("Attempt to access invalid member '"..tostring(k).."' in class "..name, 2)
+function NewAPI(class)
+	local methods = {}
+
+	local meta = {
+		__index = class,
+		__newindex = function(self, k, v)
+			methods[k] = v
+			class[k] = v
+		end, 
+	}
+
+	local api = {}
+	function api.Invert(targetclass)
+		for k, v in public_pairs(targetclass) do
+			if methods[k] then
+				class[k] = nil
+				methods[k] = nil
+			elseif rawget(class, k) == nil then
+				local v = Rest.ForbiddenMethod(k, "cross-compatible")
+				class[k] = v
+				methods[k] = v
+			end
+		end
 	end
+
+	return setmetatable(api, meta)
+end	
+local NewAPI = NewAPI
+
+function PseudoClass(name, targetclass, ...)
+	local C = ProxyClass(targetclass, ...)
+
+	AttachMetaIndexTo(setmetatable({}, C), function(_, k)
+		return error("Attempt to access invalid member '"..tostring(k).."' in class "..name, 2)
+	end, true)
+
 	return C
 end
 local PseudoClass = PseudoClass
