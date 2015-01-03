@@ -81,8 +81,6 @@ local ClockBase = require "components/clock"
 local PseudoClock = PU.PseudoClass("PseudoClock", ClockBase, function(self)
 	--assert(IsDST(), "Attempt to create a PseudoClock object in singleplayer!")
 
-	TheMod:Say( self.targetself )
-	TheMod:Say( self.targetself.inst )
 	local inst = TheWorld ~= nil and TheWorld or assert( self.targetself.inst )
 
 	assert(TheWorld == nil or inst == TheWorld)

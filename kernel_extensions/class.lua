@@ -258,7 +258,6 @@ local function ProxyClass(targetclass, ...)
 
 	C.targetself = {
 		get = function(self)
-			TheMod:Say("targetself.get. self = ", self)
 			return rawget(self, PROXYCLASS_KEY)
 		end,
 		set = Lambda.Error("targetself cannot be set."),
