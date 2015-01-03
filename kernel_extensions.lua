@@ -33,10 +33,18 @@ local submodules = {
 
 ---
 
-local function traceback(start_level)
+local function traceback(message, start_level)
 	local getinfo = debug.getinfo
 
-	local pieces = {"stack traceback:"}
+	if type(message) == "number" then
+		start_level, message = message, nil
+	end
+
+	local pieces = {}
+	if message ~= nil then
+		table.insert(pieces, tostring(message))
+	end
+	table.insert(pieces, "stack traceback:")
 
 	for lvl = (start_level or 1) + 1, math.huge do
 		local info = getinfo(lvl, "nSl")
@@ -106,8 +114,8 @@ local function dobasicextend(kernel)
 
 	kernel.traceback = traceback
 
-	kernel.ptraceback = function(lvl)
-		TheMod:Say(traceback((lvl or 1) + 1))
+	kernel.ptraceback = function(message, lvl)
+		TheMod:Say(traceback(message, (lvl or 1) + 1))
 	end
 
 	if VarExists("IsDLCEnabled") then

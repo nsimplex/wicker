@@ -7,10 +7,15 @@ local rand = math.random
 
 ---
 
-local RandVar = Class(function(self, fn)
+local RandVar = Class(function(self, fn, params)
 	self.fn = fn
+	self.params = params
 end)
 Pred.IsRandomVariable = Pred.IsInstanceOf(RandVar)
+
+function RandVar:GetParams()
+	return self.params
+end
 
 function RandVar:__call()
 	return self.fn()
@@ -25,13 +30,13 @@ local function Uniform(a, b)
 	local delta = b - a
 	return RandVar(function()
 		return a + delta*rand()
-	end)
+	end, {a, b})
 end
 _M.Uniform = Uniform
 
 local function UniformDiscrete(m, n)
 	return RandVar(function()
 		return rand(m, n)
-	end)
+	end, {m, n})
 end
 _M.UniformDiscrete = UniformDiscrete

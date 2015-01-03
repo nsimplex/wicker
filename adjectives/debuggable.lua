@@ -38,8 +38,21 @@ local io = wickerrequire 'utils.io'
 
 local Configurable = wickerrequire 'gadgets.configurable'
 
+---
+
 local Debuggable
 
+---
+
+local prefix_metatable = {
+	__tostring = function(self)
+		if self.inst ~= nil then
+			return string.format("%s [%s]", tostring(self[1]), tostring(self[2].inst))
+		else
+			return tostring(self[1])
+		end
+	end,
+}
 
 ---
 -- @description The Debuggable class. Inherits from Configurable.
@@ -49,28 +62,23 @@ Debuggable = Class(Configurable, function(self, prefix, show_inst)
 	Configurable._ctor(self)
 
 	prefix = prefix or ""
+	assert( Pred.IsWordable(prefix) )
 
-	if show_inst or show_inst == nil and self.inst then
-		prefix = setmetatable(
-			{
-				prefix = prefix,
-			},
-			{
-				__tostring = function(t)
-					return tostring(t.prefix) .. ' [' .. tostring(self.inst) .. ']'
-				end
-			}
-		)
+	if show_inst ~= false then
+		prefix = setmetatable({
+			prefix,
+			self,
+		}, prefix_metatable)
 	end
 
-	local Notifier, Sayer = io.NewNotifier(prefix, 1)
+	local Notifier, Sayer, Fmter = io.NewNotifier(prefix, 1)
 
 	---
 	-- Prints a message with source file/line number information.
 	--
 	-- @name Debuggable:Notify
 	function self:Notify(...)
-		Notifier(...)
+		return Notifier(...)
 	end
 
 	---
@@ -78,8 +86,17 @@ Debuggable = Class(Configurable, function(self, prefix, show_inst)
 	--
 	-- @name Debuggable:Say
 	function self:Say(...)
-		Sayer(...)
+		return Sayer(...)
 	end
+
+	---
+	-- Formats a sequence of arguments into a message to be said
+	-- by this object (nolineprint'ing it is the same as Say'ing
+	-- that sequence of arguments).
+	function self:Format(...)
+		return Fmter(...)
+	end
+	self.format = self.Format
 
 	local debug_flag = nil
 
@@ -168,5 +185,11 @@ function Debuggable:DebugWarn(...)
 		self:Warn(...)
 	end
 end
+
+function Debuggable:GetDebugString()
+	return self:Format()
+end
+
+Debuggable.__tostring = Debuggable.GetDebugString
 
 return Debuggable

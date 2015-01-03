@@ -207,12 +207,6 @@ return function()
 			"DebugSpawn",
 			"PrefabExists",
 
-			"GetTime",
-			"GetTick",
-			"GetTimeReal",
-
-			"FRAMES",
-			
 			"GetGroundTypeAtPosition",
 
 			"ACTIONS",

@@ -160,6 +160,52 @@ return function()
 
 	IfDedicated = immutable_lambdaif(IsDedicated)
 
+	local function Zero()
+		return 0
+	end
+
+	if VarExists "GetTick" then
+		GetTick = _G.GetTick
+	else
+		GetTick = Zero
+	end
+	if VarExists "GetTime" then
+		GetTime = _G.GetTime
+	else
+		GetTime = _G.os.clock or Zero
+	end
+	if VarExists "GetTimeReal" then
+		GetTimeReal = _G.GetTimeReal
+	else
+		GetTimeReal = GetTime
+	end
+	if VarExists "FRAMES" then
+		FRAMES = _G.FRAMES
+	else
+		FRAMES = 1/60
+	end
+
+	if VarExists "TheSim" then
+		GetTickTime = memoize_0ary(function()
+			return _G.TheSim:GetTickTime()
+		end)
+	else
+		GetTickTime = function()
+			return 1/30
+		end
+	end
+	local GetTickTime = GetTickTime
+
+	GetTicksPerSecond = memoize_0ary(function()
+		return 1/GetTickTime()
+	end)
+	local GetTicksPerSecond = GetTicksPerSecond
+
+	function GetTicksForInterval(dt)
+		return math.floor(dt*GetTicksPerSecond())
+	end
+	GetTicksInInterval = GetTicksForInterval
+
 	-- Returns an __index metamethod.
 	function LazyCopier(source, filter)
 		if not filter then

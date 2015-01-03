@@ -31,7 +31,7 @@ _M.directorySeparator = DIR_SEP
 
 local get_pretty_time = Time.TimeFormatter "[%X]"
 
-NewSayer = (function()
+NewIOFormatter = (function()
 	local function put(chunks, v)
 		local n = chunks.n + 1
 		chunks[n] = v
@@ -67,9 +67,9 @@ NewSayer = (function()
 		local chunks_in_use = false
 
 		local function put_prefix(chunks)
-			if prefix then
+			if prefix ~= nil then
+				put( chunks, " " )
 				put( chunks, tostring(prefix) )
-				put( chunks, ": " )
 			end
 		end
 
@@ -85,21 +85,17 @@ NewSayer = (function()
 			end
 			chunks.n = 0
 
-			local actual_prefix
-			if prefix then
-				actual_prefix = tostring(prefix) .. ": "
-			else
-				actual_prefix = ""
-			end
-
 			local args = {...}
 			local nargs = select("#", ...)
 
 			put_time( chunks )
 			put( chunks, " " )
 			put_mod_name( chunks )
-			put( chunks, " " )
 			put_prefix( chunks )
+
+			if nargs > 0 then
+				put( chunks, ": " )
+			end
 
 			for i = 1, nargs do
 				put(chunks, tostring(args[i]))
@@ -114,10 +110,16 @@ NewSayer = (function()
 
 			chunks.n = nil
 
-			return nolineprint(table.concat(chunks))
+			return table.concat(chunks)
 		end
 	end
 end)()
+
+function NewSayer(prefix)
+	local Fmt = NewIOFormatter(prefix)
+	local Say = Lambda.Compose(nolineprint, Fmt)
+	return Say, Fmt
+end
 
 -- Trims the 'source' entry from the table returned by debug.getinfo()
 function TrimSource(name)
@@ -136,19 +138,21 @@ function NewNotifier(prefix, layer_offset)
 	prefix = prefix or ""
 	local layer_index = 1 + (layer_offset or 0)
 
-	local Say = NewSayer(prefix)
+	local Say, Fmt = NewSayer(prefix)
 
-	local function DoNotify(...)
+	local getinfo = debug.getinfo
+
+	local function Notify(...)
 		local env, i = GetEnvironmentLayer(layer_index, true)
 		assert( i )
 
-		local info = debug.getinfo(i, 'Sl')
+		local info = getinfo(i, 'Sl')
 		local filename = TrimSource(tostring(info.source))
 
 		Say('@', filename, ':', info.currentline, ': ', ...)
 	end
 
-	return DoNotify, Say
+	return Notify, Say, Fmt
 end
 
 
