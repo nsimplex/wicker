@@ -195,6 +195,11 @@ local function EmbedPlugin(self, specs_table, wrapper, full_name, id, fn)
 
 	local norm_id = normalize_id(id)
 
+	local arg_map = plugin_arg_maps[full_name]
+	if arg_map then
+		fn = Lambda.Compose(fn, arg_map)
+	end
+
 	local spec = {
 		id = id,
 		fn = fn,
@@ -203,11 +208,9 @@ local function EmbedPlugin(self, specs_table, wrapper, full_name, id, fn)
 	
 	specs_table[norm_id] = spec
 
-	local arg_map = plugin_arg_maps[full_name] or Lambda.Identity
-
 	self[full_name] = function(self, ...)
 		ModCheck(self)
-		return wrapper(self, norm_id, arg_map(...))
+		return wrapper(self, norm_id, ...)
 	end
 
 	return spec

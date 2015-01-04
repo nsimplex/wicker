@@ -15,33 +15,26 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
-wickerrequire "plugins.addgamelogicpostload"
-
 
 local FunctionQueue = wickerrequire 'gadgets.functionqueue'
 
 
-local preinits = FunctionQueue()
+local postloads = FunctionQueue()
 
 
-local patched_populate = false
-TheMod:AddGameLogicPostLoad(function()
-	if patched_populate then return end
-	assert( VarExists "PopulateWorld" )
-
-	patched_populate = true
-
-	local populate = _G.PopulateWorld
-	_G.PopulateWorld = function(...)
-		preinits(...)
-		return populate(...)
+local did_run = false
+TheMod:AddGlobalClassPostConstruct("saveindex", "SaveIndex", function()
+	if did_run then return end
+	if VarExists("PopulateWorld") then
+		did_run = true
+		postloads()
 	end
 end)
 
 
-local function AddPopulateWorldPreInit(fn)
-	table.insert(preinits, fn)
+local function AddPostLoad(fn)
+	table.insert(postloads, fn)
 end
 
 
-TheMod:EmbedHook("AddPopulateWorldPreInit", AddPopulateWorldPreInit)
+TheMod:EmbedHook("AddGameLogicPostLoad", AddPostLoad)
