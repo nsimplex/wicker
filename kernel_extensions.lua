@@ -134,6 +134,10 @@ local function dobasicextend(kernel)
 		kernel.REIGN_OF_GIANTS = 1
 	end
 
+	kernel.IsRoG = memoize_0ary(function()
+		return IsDLCEnabled(REIGN_OF_GIANTS) and true or false
+	end)
+
 	if VarExists("DONT_STARVE_APPID") then
 		kernel.DONT_STARVE_APPID = _G.DONT_STARVE_APPID
 	else

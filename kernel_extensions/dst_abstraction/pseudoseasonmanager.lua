@@ -21,7 +21,7 @@ local PU = pkgrequire "pseudoutils"
 
 local TUNING = TUNING
 
-local is_rog = _G.IsDLCEnabled(_G.REIGN_OF_GIANTS)
+local is_rog = IsDLCEnabled(REIGN_OF_GIANTS)
 
 ---
 
