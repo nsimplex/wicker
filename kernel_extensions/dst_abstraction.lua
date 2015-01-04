@@ -163,6 +163,16 @@ else
 end
 
 if IsDST() then
+	GetGroundTypeAtPosition = function(pt)
+		return TheWorld.Map:GetTileAtPoint(pt:Get())
+	end
+else
+	if not VarExists "GetGroundTypeAtPosition" then
+		GetGroundTypeAtPosition = Lambda.Zero
+	end
+end
+
+if IsDST() then
 	TryPause = Lambda.Nil
 else
 	TryPause = function(b)

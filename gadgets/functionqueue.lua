@@ -22,10 +22,15 @@ local Lambda = wickerrequire 'paradigms.functional'
 
 local Pred = wickerrequire 'lib.predicates'
 
+local assert = assert
+local unpack = unpack
+local pairs, ipairs = pairs, ipairs
+
 
 local FunctionQueue = Class(function(self) end)
 
-Pred.IsFunctionQueue = Pred.IsInstanceOf(FunctionQueue)
+local IsFunctionQueue = Pred.IsInstanceOf(FunctionQueue)
+Pred.IsFunctionQueue = IsFunctionQueue
 
 
 function FunctionQueue:__call(...)
@@ -82,17 +87,40 @@ function FunctionQueue:Copy()
 	return FunctionQueue():AppendArray(self)
 end
 
-
+--[[
 function FunctionQueue.__add(A, B)
-	if not Pred.IsFunctionQueue(A) then
+	if not IsFunctionQueue(A) then
 		A, B = B, A
 	end
 	assert( Pred.IsFunctionQueue(A) )
 	assert( Pred.IsTable(B) )
 	return A:Copy():AppendArray(B)
 end
+]]--
 
-FunctionQueue.__concat = FunctionQueue.__add
+function FunctionQueue:WrapFromLeft(f)
+	return function(...)
+		self(...)
+		return f(...)
+	end
+end
+
+function FunctionQueue:WrapFromRight(f)
+	local unpack = unpack
+	return function(...)
+		local rets = {f(...)}
+		self(...)
+		return unpack(rets)
+	end
+end
+
+function FunctionQueue.__concat(A, B)
+	if IsFunctionQueue(A) then
+		return A:WrapFromLeft(B)
+	else
+		return B:WrapFromRight(A)
+	end
+end
 
 
 return FunctionQueue
