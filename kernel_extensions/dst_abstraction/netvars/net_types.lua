@@ -13,12 +13,12 @@ local function uint(name, bitsz)
 	return {name = name, tag = "uint", type = "number", bitsz = bitsz, min = 0, max = 2^bitsz - 1}
 end
 
-local function int(name, bitsz)
-	return {name = name, tag = "int", type = "number", signed = true, modulo = 2^bitsz, min = -2^(bitsz - 1), max = 2^(bitsz - 1) - 1}
+local function int(name, bitsz, custom_sign_implementation)
+	return {name = name, tag = "int", type = "number", custom_signed = custom_sign_implementation, modulo = 2^bitsz, min = -2^(bitsz - 1), max = 2^(bitsz - 1) - 1}
 end
 
 local function int_pair(s_name, u_name, bitsz)
-	return {int(s_name, bitsz), uint(u_name, bitsz)}
+	return {int(s_name, bitsz, true), uint(u_name, bitsz)}
 end
 
 local function bool()
@@ -43,7 +43,7 @@ local function array(element)
 	else
 		local ret = {}
 		for i, v in ipairs(element) do
-			table.insert(ret, array(v))
+			ret[i] = array(v)
 		end
 		return ret
 	end
@@ -51,7 +51,7 @@ end
 
 --[[
 local function logic_or(a, b)
-	return {type = "choice", a, b}
+	return {tag = "choice", a, b}
 end
 ]]--
 
@@ -62,12 +62,14 @@ local atomic_net_types = {
 	net_byte = int_pair("Byte", "UByte", 8),
 	net_entity = {entity()},
 	net_float = {float()},
---	net_hash = logic_or(str(), uint(32)),
-	net_smallbyte = int_pair("SmallByte", "SmallUByte", 4),
+--	net_hash = logic_or(str(), uint("Hash", 32)),
+	net_smallbyte = int_pair("SmallByte", "SmallUByte", 6),
 	net_string = {str()},
 	net_tinybyte = int_pair("TinyByte", "TinyUByte", 3),
-	net_uint = int_pair("Int", "UInt", 32),
-	net_ushortint = int_pair("ShortInt", "ShortUInt", 16),
+	net_uint = {uint("UInt", 32)},
+	net_int = {int("Int", 32)},
+	net_ushortint = {uint("ShortUInt", 16)},
+	net_shortint = {int("ShortInt", 16)},
 }
 
 ---
@@ -93,10 +95,30 @@ local function get_arg_validator(spec)
 	return Pred.IsType(spec.type)
 end
 
-local function new_clamper(min, max)
-	local math_min, math_max = math.min, math.max
+local function new_bounds_checker(min, max)
+	local testfn
+	local range_str
+	if max == nil then
+		assert(min)
+		range_str = "["..tostring(min)..", inf)"
+		testfn = function(x) return x >= min end
+	elseif min == nil then
+		assert(max)
+		range_str = "(inf, "..tostring(max).."]"
+		testfn = function(x) return x <= max end
+	else
+		range_str = "["..tostring(min)..", "..tostring(max).."]"
+		testfn = function(x) return min <= x and x <= max end
+	end
+
+	assert(range_str)
+	assert(testfn)
+
 	return function(x)
-		return math_max(min, math_min(max, x))
+		if not testfn(x) then
+			return error("The value '"..tostring(x).."' exceeds the allowed "..range_str.." range for the chosen netvar type.", 2)
+		end
+		return x
 	end
 end
 
@@ -131,19 +153,13 @@ local function get_encoder(spec)
 
 	local ret = round
 
-	if not spec.min and not spec.max then
+	if not (spec.min or spec.max) then
 		return ret
 	end
 
-	if spec.min and spec.max then
-		ret = Lambda.Compose(new_clamper(spec.min, spec.max), ret)
-	elseif spec.min then
-		ret = Lambda.Compose(Lambda.BindFirst(math.max, spec.min), ret)
-	else
-		ret = Lambda.Compose(Lambda.BindFirst(math.min, spec.max), ret)
-	end
+	ret = Lambda.Compose(new_bounds_checker(spec.min, spec.max), ret)
 
-	if spec.signed then
+	if spec.custom_signed then
 		local MODULO = assert(spec.modulo)
 		local basic_normalize = ret
 		ret = function(x)
@@ -163,7 +179,7 @@ local function get_decoder(spec)
 		return get_array_decoder( get_decoder(spec.element) )
 	end
 
-	if not spec.signed then
+	if not spec.custom_signed then
 		return Lambda.Identity
 	end
 
