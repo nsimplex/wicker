@@ -72,7 +72,7 @@ local function WrapPrefabConstructor(fn)
 
 		if not status then
 			-- In this case, inst is actually the error msg.
-			return error(inst, 0)
+			return error(traceback(co, tostring(inst)), 0)
 		end
 
 		local ps = GetPostConstructs(co, true)
