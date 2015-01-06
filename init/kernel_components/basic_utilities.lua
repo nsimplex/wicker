@@ -15,69 +15,89 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
-
-return function()
-	local assert, error = assert( _G.assert ), assert( _G.error )
-	local type = assert( _G.type )
-	local rawget = assert( _G.rawget )
-	local rawset = assert( _G.rawset )
-	local getmetatable = assert( _G.getmetatable )
-	local setmetatable = assert( _G.setmetatable )
-	local table = assert( _G.table )
-
-	function memoize_0ary(f, dont_retry)
-		local cached
-		if not dont_retry then
-			return function()
-				if cached == nil then
-					cached = f()
-					if cached ~= nil then
-						f = nil
-					end
-				end
-				return cached
-			end
-		else
-			local tried = false
-			return function()
-				if not tried then
-					cached = f()
+local function memoize_0ary(f, dont_retry)
+	local cached
+	if not dont_retry then
+		return function()
+			if cached == nil then
+				cached = f()
+				if cached ~= nil then
 					f = nil
-					tried = true
 				end
-				return cached
 			end
+			return cached
+		end
+	else
+		local tried = false
+		return function()
+			if not tried then
+				cached = f()
+				f = nil
+				tried = true
+			end
+			return cached
 		end
 	end
-	local memoize_0ary = memoize_0ary
-	memoise_0ary = memoize_0ary
+end
 
-	local function lambdaif(p)
-		return function(a, b)
-			if p() then
-				return a
-			else
-				return b
-			end
-		end
-	end
-	local function immutable_lambdaif(p)
+local function lambdaif(p)
+	return function(a, b)
 		if p() then
-			return function(a, b)
-				return a
-			end
+			return a
 		else
-			return function(a, b)
-				return b
-			end
+			return b
 		end
 	end
+end
+local function immutable_lambdaif(p)
+	if p() then
+		return function(a, b)
+			return a
+		end
+	else
+		return function(a, b)
+			return b
+		end
+	end
+end
 
-	local unique_string = _G.tostring({})
+local function Zero()
+	return 0
+end
 
+local function One()
+	return 1
+end
+
+----------
+
+local function include_platform_detection_functions(_G, kernel)
+	local PLATFORM_DETECTION = {}
+
+	local assert = _G.assert
+	local VarExists = assert( kernel.VarExists )
+
+	local rawget = _G.rawget
+	local rawset = _G.rawset
+
+	local getmetatable = _G.getmetatable
+	local setmetatable = _G.setmetatable
+
+	local detect_meta = {
+		__index = kernel,
+		__newindex = function(t, k, v)
+			kernel[k] = v
+			rawset(t, k, v)
+		end,
+	}
+
+	setmetatable(PLATFORM_DETECTION, detect_meta)
 
 	---
+	
+	_G.setfenv(1, PLATFORM_DETECTION)
 
+	---
 
 	IsWorldgen = memoize_0ary(function()
 		return rawget(_G, "SEED") ~= nil
@@ -160,9 +180,98 @@ return function()
 
 	IfDedicated = immutable_lambdaif(IsDedicated)
 
-	local function Zero()
-		return 0
+	---
+
+	if VarExists("IsDLCEnabled") then
+		IsDLCEnabled = _G.IsDLCEnabled
+	else
+		IsDLCEnabled = Lambda.False
 	end
+	if VarExists("IsDLCInstalled") then
+		IsDLCInstalled = _G.IsDLCInstalled
+	else
+		IsDLCInstalled = IsDLCEnabled
+	end
+	if VarExists("REIGN_OF_GIANTS") then
+		REIGN_OF_GIANTS = _G.REIGN_OF_GIANTS
+	else
+		REIGN_OF_GIANTS = 1
+	end
+
+	IsRoG = memoize_0ary(function()
+		return IsDLCEnabled(REIGN_OF_GIANTS) and true or false
+	end)
+	IsROG = IsRoG
+
+	IfRoG = immutable_lambdaif(IsRoG)
+	IfROG = IsRog
+
+	if VarExists("DONT_STARVE_APPID") then
+		DONT_STARVE_APPID = _G.DONT_STARVE_APPID
+	else
+		DONT_STARVE_APPID = 219740
+	end
+
+	if VarExists("DONT_STARVE_TOGETHER_APPID") then
+		DONT_STARVE_TOGETHER_APPID = _G.DONT_STARVE_TOGETHER_APPID
+	else
+		DONT_STARVE_TOGETHER_APPID = 322330
+	end
+
+	local GetSteamAppID
+	local has_TheSim = VarExists("TheSim")
+	if has_TheSim and _G.TheSim.GetSteamAppID then
+		GetSteamAppID = function()
+			return _G.TheSim:GetSteamAppID()
+		end
+	else
+		GetSteamAppID = function()
+			if IsDST() then
+				return DONT_STARVE_TOGETHER_APPID
+			else
+				return DONT_STARVE_APPID
+			end
+		end
+		if has_TheSim then
+			getmetatable(_G.TheSim).__index.GetSteamAppID = GetSteamAppID
+		end
+	end
+	GetSteamAppId = GetSteamAppID
+
+	---
+
+	if IsDST() then
+		GetPlayerId = function(player)
+			return player.userid
+		end
+	else
+		GetPlayerId = One
+	end
+	GetUserId = GetPlayerId
+
+	---
+
+	detect_meta.__newindex = nil
+	return PLATFORM_DETECTION
+end
+
+----------
+
+return function()
+	local assert, error = assert( _G.assert ), assert( _G.error )
+	local type = assert( _G.type )
+	local rawget = assert( _G.rawget )
+	local rawset = assert( _G.rawset )
+	local getmetatable = assert( _G.getmetatable )
+	local setmetatable = assert( _G.setmetatable )
+	local table = assert( _G.table )
+	local math = assert( _G.math )
+
+	_M.memoize_0ary = assert( memoize_0ary )
+	_M.memoise_0ary = assert( memoize_0ary )
+
+	PLATFORM_DETECTION = include_platform_detection_functions(_G, assert(_M))
+	assert( IsDST )
 
 	if VarExists "GetTick" then
 		GetTick = _G.GetTick
@@ -201,10 +310,20 @@ return function()
 	end)
 	local GetTicksPerSecond = GetTicksPerSecond
 
-	function GetTicksForInterval(dt)
-		return math.floor(dt*GetTicksPerSecond())
-	end
+	GetTicksForInterval = (function()
+		local floor = math.floor
+		return function(dt)
+			return floor(dt*GetTicksPerSecond())
+		end
+	end)()
 	GetTicksInInterval = GetTicksForInterval
+
+	GetTicksCoveringInterval = (function()
+		local ceil = math.ceil
+		return function(dt)
+			return ceil(dt*GetTicksPerSecond())
+		end
+	end)()
 
 	-- Returns an __index metamethod.
 	function LazyCopier(source, filter)

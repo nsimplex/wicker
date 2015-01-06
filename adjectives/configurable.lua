@@ -200,9 +200,11 @@ local configuration_env = {
 	STRINGS = STRINGS,
 	Point = Point,
 	Vector3 = Vector3,
+	EntityScript = EntityScript,
 
 	math = math,
 	table = table,
+	coroutine = coroutine,
 	ipairs = ipairs,
 	pairs = pairs,
 	select = select,
@@ -214,11 +216,17 @@ local configuration_env = {
 	tonumber = tonumber,
 	getmetatable = getmetatable,
 	setmetatable = setmetatable,
+	rawget = rawget,
+	rawset = rawset,
 
 	Lambda = make_ro_proxy(Lambda),
 	Logic = make_ro_proxy(Logic),
 	Pred = make_ro_proxy(Pred),
 }
+
+for k, fn in pairs( assert(PLATFORM_DETECTION) ) do
+	configuration_env[k] = fn
+end
 
 local loaded_funcs = setmetatable({}, {__mode = "k"})
 local loaded_files = {}
