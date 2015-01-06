@@ -33,16 +33,18 @@ local submodules = {
 
 ---
 
+local function process_getinfo_args(thread, ...)
+	if thread == nil then
+		return ...
+	else
+		return thread, ...
+	end
+end
+
 local function traceback(thread, message, start_level)
 	if thread ~= nil and type(thread) ~= "thread" then
 		thread, message, start_level = nil, thread, message
 	end
-
-	if thread == nil then
-		thread = coroutine.running()
-	end
-
-	local getinfo = debug.getinfo
 
 	if start_level == nil and type(message) == "number" then
 		start_level, message = message, nil
@@ -54,8 +56,10 @@ local function traceback(thread, message, start_level)
 	end
 	table.insert(pieces, "stack traceback:")
 
+	local getinfo = debug.getinfo
+
 	for lvl = (start_level or 1) + 1, math.huge do
-		local info = getinfo(thread, lvl, "nSl")
+		local info = getinfo( process_getinfo_args(thread, lvl, "nSl") )
 		if info == nil then break end
 
 		local is_C = (info.what == "C")
