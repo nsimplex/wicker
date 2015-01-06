@@ -238,10 +238,9 @@ local function NewNetVarClassFromSpec(spec, classname)
 			local r = self._raw
 			local w
 			if v == nil then
-				w = r:value()
-			else
-				w = map_into(self, v)
+				w = self:GetValue()
 			end
+			w = map_into(self, v)
 			self.pending_dirty = false
 			r:set_local(w)
 			r:set(w)
