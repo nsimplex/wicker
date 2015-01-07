@@ -6,8 +6,6 @@ end
 
 ---
 
-local EntityTable = wickerrequire "gadgets.entity_table"
-
 local NetUByteArray = assert( NetUByteArray )
 
 ---
