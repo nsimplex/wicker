@@ -6,6 +6,7 @@ end
 
 ---
 
+assert( ServerRPC )
 local NetUByteArray = assert( NetUByteArray )
 
 ---
