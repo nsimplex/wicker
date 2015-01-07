@@ -109,7 +109,9 @@ if IsDST() then
 else
 	RegisterBroadcastEvent = Lambda.Nil
 
-	ServerRPC.PushBroadcastEvent = basic_PushBroadcastEvent
+	function ServerRPC.PushBroadcastEvent(player, inst, event_name)
+		return basic_PushBroadcastEvent(inst, event_name)
+	end
 end
 
 ---
