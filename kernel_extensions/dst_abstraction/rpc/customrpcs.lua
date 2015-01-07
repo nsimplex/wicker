@@ -62,6 +62,14 @@ if IsDST() then
 		if handler == nil then
 			return error("No custom mod RPC registed for subcode "..tostring(subcode))
 		end
+		if TheMod:Debug() then
+			for name, n in pairs(mod_rpc_codemap) do
+				if n == subcode then
+					TheMod:Say("Received RPC '", name, "'.")
+					break
+				end
+			end
+		end
 		return handler(player, ...)
 	end
 

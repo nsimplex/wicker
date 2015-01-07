@@ -66,7 +66,8 @@ if IsDST() then
 			local event_name = GetEventFromCode(inst, code)
 			if not event_name then
 				TheMod:Warn("The broadcast event code ", tostring(code), " wasn't registered for entity [", inst, "]")
-				return basic_PushBroadcastEvent(inst, event_name)
+			else
+				basic_PushBroadcastEvent(inst, event_name)
 			end
 		end
 		netvar.local_value = {}

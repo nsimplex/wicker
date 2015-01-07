@@ -60,6 +60,9 @@ BasicVirtualServerRPC.Send = Lambda.Error("Attempt to call pure virtual method '
 
 -- For polymorphism.
 function BasicVirtualServerRPC:__call(...)
+	if self:Debug() then
+		self:Say("Sending '", self:GetName(), "' RPC...")
+	end
 	return self:Send(...)
 end
 
