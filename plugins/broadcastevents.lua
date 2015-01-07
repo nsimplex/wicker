@@ -87,7 +87,7 @@ if IsDST() then
 	function ServerRPC.PushBroadcastEvent(player, inst, event_code)
 		local event_name = GetEventFromCode(inst, event_code)
 		if not event_name then
-			TheMod:Warn("The server event code ", tostring(event_code), " wasn't registered for entity [", inst, "]")
+			TheMod:Warn("The broadcast event code ", tostring(event_code), " wasn't registered for entity [", inst, "]")
 			return
 		end
 
