@@ -197,14 +197,33 @@ local function include_platform_detection_functions(_G, kernel)
 	else
 		REIGN_OF_GIANTS = 1
 	end
+	if VarExists("CAPY_DLC") then
+		CAPY_DLC = _G.CAPY_DLC
+	else
+		CAPY_DLC = 2
+	end
 
 	IsRoG = memoize_0ary(function()
 		return IsDLCEnabled(REIGN_OF_GIANTS) and true or false
 	end)
 	IsROG = IsRoG
 
+	IsSW = memoize_0ary(function()
+		return IsDLCEnabled(CAPY_DLC) and true or false
+	end)
+
+	IsSWWorld = memoize_0ary(function()
+		if VarExists "SaveGameIndex" then
+			return SaveGameIndex:IsModeShipwrecked()
+		end
+	end)
+
 	IfRoG = immutable_lambdaif(IsRoG)
-	IfROG = IsRog
+	IfROG = IfRoG
+
+	IfSW = immutable_lambdaif(IsSW)
+
+	IfSWWorld = lambdaif(IsSWWorld)
 
 	if VarExists("DONT_STARVE_APPID") then
 		DONT_STARVE_APPID = _G.DONT_STARVE_APPID

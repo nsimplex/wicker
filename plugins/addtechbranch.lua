@@ -132,6 +132,7 @@ function AddPrototyperTree(name, spec, hint)
 	spec.SCIENCE = spec.SCIENCE or 0
 	spec.MAGIC = spec.MAGIC or 0
 	spec.ANCIENT = spec.ANCIENT or 0
+	spec.OBSIDIAN = spec.OBSIDIAN or 0
 
 	_G.TUNING.PROTOTYPER_TREES[name] = spec
 
