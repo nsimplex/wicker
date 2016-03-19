@@ -212,7 +212,7 @@ local function include_platform_detection_functions(_G, kernel)
 		return IsDLCEnabled(CAPY_DLC) and true or false
 	end)
 
-	IsSWWorld = memoize_0ary(function()
+	IsSWLevel = memoize_0ary(function()
 		if VarExists "SaveGameIndex" then
 			return SaveGameIndex:IsModeShipwrecked()
 		end
@@ -223,7 +223,7 @@ local function include_platform_detection_functions(_G, kernel)
 
 	IfSW = immutable_lambdaif(IsSW)
 
-	IfSWWorld = lambdaif(IsSWWorld)
+	IfSWLevel = lambdaif(IsSWLevel)
 
 	if VarExists("DONT_STARVE_APPID") then
 		DONT_STARVE_APPID = _G.DONT_STARVE_APPID
