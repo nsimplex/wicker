@@ -228,7 +228,11 @@ local function include_platform_detection_functions(_G, kernel)
 	end
 
 	IsRoG = memoize_0ary(function()
-		return IsDLCEnabled(REIGN_OF_GIANTS) and true or false
+		if IsDST() then
+			return true
+		else
+			return IsDLCEnabled(REIGN_OF_GIANTS) and true or false
+		end
 	end)
 	IsROG = IsRoG
 
