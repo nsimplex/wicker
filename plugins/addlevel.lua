@@ -53,6 +53,9 @@ else
 	end
 
 	MyAddLevel = function(leveltype, data)
+		local Tree = wickerrequire "utils.table.tree"
+		data = Tree.InjectInto({}, data)
+
 		require "map/tasks"
 		require "map/startlocations"
 
