@@ -181,15 +181,15 @@ local function include_platform_detection_functions(_G, kernel)
 	IfDedicated = immutable_lambdaif(IsDedicated)
 
 	local function can_be_shard()
-		return IsDST() and IsServer() and not IsWorldgen()
+		return IsDST() and IsServer() and not IsWorldgen() and VarExists("TheShard")
 	end
 
 	IsMasterShard = memoize_0ary(function()
-		return can_be_shard() and TheShard:IsMaster()
+		return can_be_shard() and _G.TheShard:IsMaster()
 	end)
 
 	IsSlaveShard = memoize_0ary(function()
-		return can_be_shard() and TheShard:IsSlave()
+		return can_be_shard() and _G.TheShard:IsSlave()
 	end)
 
 	IsShardedServer = memoize_0ary(function()
