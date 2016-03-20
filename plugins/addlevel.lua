@@ -18,7 +18,7 @@ else
 
 	local function extractStartLocation(data)
 		local startloc_data = {
-			name = data.name
+			name = data.name,
 			location = data.location,
 		}
 
