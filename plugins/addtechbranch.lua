@@ -142,6 +142,12 @@ function AddPrototyperTree(name, spec, hint)
 
 		local ERROR_404 = "Text not found."
 
+		local GetHintTextForRecipe = rawget(_G, "GetHintTextForRecipe")
+		if GetHintTextForRecipe == nil then
+			local Reflection = wickerrequire "game.reflection"
+			GetHintTextForRecipe = Reflection.RequireUpvalue(RecipePopup.Refresh, "GetHintTextForRecipe")
+		end
+
 		RecipePopup.Refresh = (function()
 			local Refresh = RecipePopup.Refresh
 
@@ -149,7 +155,7 @@ function AddPrototyperTree(name, spec, hint)
 				Refresh(self, ...)
 
 				if self.teaser and self.teaser:IsVisible() and self.teaser:GetString() == ERROR_404 then
-					if _G.CanPrototypeRecipe(self.recipe.level, spec) and _G.GetHintTextForRecipe(self.recipe) == name then
+					if _G.CanPrototypeRecipe(self.recipe.level, spec) and GetHintTextForRecipe(self.recipe) == name then
 						self.teaser:SetString(tostring(hint))
 					end
 				end
