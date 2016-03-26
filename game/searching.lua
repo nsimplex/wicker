@@ -174,6 +174,8 @@ GetAllPlayers = FindAllPlayers
 
 FindSomePlayer = MakePlayerSearcher(basic_finders.any)
 GetSomePlayer = FindSomePlayer
+FindAnyPlayer = FindSomePlayer
+GetAnyPlayer = FindSomePlayer
 
 FindRandomPlayer = MakePlayerSearcher(basic_finders.random)
 GetRandomPlayer = FindRandomPlayer
