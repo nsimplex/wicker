@@ -31,7 +31,16 @@ pkgrequire "dst_abstraction.patches"
 local Rest = pkgrequire "dst_abstraction.restriction"
 
 local PseudoClock = pkgrequire "dst_abstraction.pseudoclock"
-local PseudoSeasonManager = pkgrequire "dst_abstraction.pseudoseasonmanager"
+
+-- This must be loaded later in SW, since seasonmanager.lua references
+-- SaveGameIndex.
+local function requirePseudoSeasonManager()
+	-- Do **NOT** remove this "dummy" temp variable.
+	-- We do **NOT** want a tail call, otherwise environment detection will
+	-- barf.
+	local ret = pkgrequire "dst_abstraction.pseudoseasonmanager"
+	return ret
+end
 
 local PrefabConstructor = pkgrequire "dst_abstraction.prefab_constructor"
 
@@ -241,6 +250,7 @@ TheMod:AddComponentPostInit(IfDST("seasons", "seasonmanager"), function(seasons)
 	if pseudoseasonmanager ~= nil then
 		return error("Logic error: two "..IfDST("seasons", "seasonmanager").." components instantiated in a game instance.")
 	end
+	local PseudoSeasonManager = requirePseudoSeasonManager()
 	pseudoseasonmanager = PseudoSeasonManager(seasons)
 end)
 function GetPseudoClock()

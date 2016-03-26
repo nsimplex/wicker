@@ -435,7 +435,13 @@ function Configurable:LoadModConfigurationData()
 	if loaded_mod_cfg_data then return end
 	loaded_mod_cfg_data = true
 
-	local OPTS = modenv.MODCONFIG
+	-- TODO: review behavior concerning client and server side options
+	local OPTS
+	if IsDST() then
+		OPTS = _G.KnownModIndex:GetModConfigurationOptions_Internal(modenv.modname) or {}
+	else
+		OPTS = modenv.MODCONFIG
+	end
 	if type(OPTS) ~= "table" then
 		return error("Table expected as MODCONFIG value in the mod environment, got "..type(OPTS), 2)
 	end

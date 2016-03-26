@@ -165,8 +165,9 @@ return function()
 	local function import_game_essentials_into(t)
 		--[[
 		-- These are loaded right away into the environment.
-		-- The main reason for NOT including something here
-		-- is if it doesn't exist during worldgen.
+		-- The main reasons for NOT including something here
+		-- are if it doesn't exist during worldgen or if it
+		-- exists only in DST or only outside of it.
 		--]]
 		local mandatory_imports = {
 			"print",
@@ -196,6 +197,7 @@ return function()
 			"SaveGameIndex",
 			"TheWorld",
 			"TheNet",
+			"TheShard",
 
 			"LEVELTYPE",
 			"KEYS",

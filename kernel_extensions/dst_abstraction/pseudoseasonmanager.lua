@@ -21,15 +21,20 @@ local PU = pkgrequire "pseudoutils"
 
 local TUNING = TUNING
 
-local is_rog = IsDLCEnabled(REIGN_OF_GIANTS)
+local is_rog = IsRoG()
+
+-- It doesn't matter if the game mode itself is SW or not.
+local is_sw = IsSW()
 
 ---
 
 local SEASON_NAMES
-if not is_rog then
-	SEASON_NAMES = {"summer", "winter"}
-else
+if is_sw then
+	SEASON_NAMES = {"autumn", "winter", "spring", "summer", "mild", "wet", "green", "dry"}
+elseif is_rog then
 	SEASON_NAMES = {"autumn", "winter", "spring", "summer"}
+else
+	SEASON_NAMES = {"summer", "winter"}
 end
 
 local LIGHTNING_MODES_PRETTYNAME_MAP = {
@@ -148,7 +153,7 @@ end
 defineLightningModeMethods(MasterAPI, "Lightning%s", PushWET("ms_setlightningmode"))
 
 local argsToSeasonTable
-if is_rog then
+if is_rog or is_sw then
 	argsToSeasonTable = function(autumn, winter, spring, summer)
 		return {
 			autumn = autumn,
@@ -249,6 +254,9 @@ API.OnUpdate = Lambda.Nil
 API.LongUpdate = Lambda.Nil
 
 if IsSingleplayer() then
+	for k, v in pairs(SeasonBase) do
+		print(tostring(k), " ==> ", tostring(v))
+	end
 	API.Invert(SeasonBase)
 end
 
