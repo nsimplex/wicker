@@ -83,6 +83,10 @@ local function include_platform_detection_functions(_G, kernel)
 	local getmetatable = _G.getmetatable
 	local setmetatable = _G.setmetatable
 
+	local tonumber = _G.tonumber
+
+	local GetModDirectoryName = assert( kernel.GetModDirectoryName )
+
 	local detect_meta = {
 		__index = kernel,
 		__newindex = function(t, k, v)
@@ -109,6 +113,22 @@ local function include_platform_detection_functions(_G, kernel)
 
 	IfWorldgen = immutable_lambdaif(IsWorldgen)
 	IfWorldGen = IfWorldgen
+
+	GetWorkshopId = memoize_0ary(function()
+		local dirname = GetModDirectoryName():lower()
+		local strid = dirname:match("^workshop%s*%-%s*(%d+)$")
+		if strid ~= nil then
+			return tonumber(strid)
+		end
+	end)
+	GetSteamWorkshopId = GetWorkshopId
+	local GetWorkshopId = GetWorkshopId
+
+	IsWorkshop = function()
+		return GetWorkshopId() ~= nil
+	end
+	IsSteamWorkshop = IsWorkshop
+	local IsWorkshop = IsWorkshop
 
 	IsDST = memoize_0ary(function()
 		return _G.kleifileexists("scripts/networking.lua") and true or false

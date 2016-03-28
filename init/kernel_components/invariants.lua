@@ -41,6 +41,10 @@ return function(boot_params, wicker_stem)
 		return wicker_stem
 	end
 
+	function GetModDirectoryName()
+		return modenv.modname
+	end
+
 	function GetModcodeRoot()
 		return modcode_root
 	end

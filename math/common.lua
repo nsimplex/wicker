@@ -1,8 +1,27 @@
 local Lambda = wickerrequire "paradigms.functional"
 local Pred = wickerrequire "lib.predicates"
 
+-- Coerces a value to a Point object, returning nil if that is not possible.
+function CoerceToPoint(x)
+	if Pred.IsPoint(x) then
+		return x
+	elseif Pred.IsEntityScript(x) then
+		return x:GetPosition()
+	elseif x == nil then
+		return Point()
+	end
+end
+local CoerceToPoint = CoerceToPoint
+
+-- Hardened version of the above which also works for triples of numbers.
 function ToPoint(x, y, z)
-	x = x or 0
+	if x == nil then
+		if y == nil and z == nil then
+			TheMod:Warn("coercing nil to Point(0, 0, 0)")
+			return Point(0, 0, 0)
+		end
+		x = 0
+	end
 
 	if Pred.IsNumber(x) then
 		y = y or 0
@@ -10,15 +29,14 @@ function ToPoint(x, y, z)
 		if Pred.IsNumber(y) and Pred.IsNumber(z) then
 			return Point(x, y, z)
 		end
-	elseif Pred.IsEntityScript(x) then
-		return x:GetPosition()
+	else
+		local pt = CoerceToPoint(x)
+		if pt ~= nil then
+			return pt
+		end
 	end
 
-	if Pred.IsPoint(x) then
-		return x
-	end
-
-	return error( ("point expected, got %s"):format(type(x)) )
+	return error( ("point expected, got %s"):format(type(x)), 1 )
 end
 
 --[[
