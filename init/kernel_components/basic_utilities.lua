@@ -90,7 +90,8 @@ local function include_platform_detection_functions(_G, kernel)
 	local ipairs = _G.ipairs
 
 	local next = _G.next
-local GetModDirectoryName = assert( kernel.GetModDirectoryName )
+
+	local GetModDirectoryName = assert( kernel.GetModDirectoryName )
 
 	local detect_meta = {
 		__index = kernel,

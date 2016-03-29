@@ -175,6 +175,7 @@ function Debuggable:DebugSay(...)
 		self:Say(...)
 	end
 end
+B
 
 function Debuggable:Warn(...)
 	self:Say("WARNING: ", ...)

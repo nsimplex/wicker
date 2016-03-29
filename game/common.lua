@@ -33,6 +33,9 @@ local Math = wickerrequire "math"
 ToPoint = Math.ToPoint
 local ToPoint = ToPoint
 
+CoerceToPoint = Math.CoerceToPoint
+local CoerceToPoint = CoerceToPoint
+
 ToComplex = Math.ToComplex
 local ToComplex = ToComplex
 
