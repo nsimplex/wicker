@@ -158,6 +158,8 @@ local function kernel_boot_coroutine_body(_G, module)
 	AddKernelComponent("cleanup")
 	local PerformCleanup = PerformCleanup
 
+	AddKernelComponent("invariants", boot_params, wicker_stem)
+
 	AddKernelComponent("basic_utilities")
 	local VarExists = VarExists
 	local IsWorldGen = IsWorldgen
@@ -174,8 +176,6 @@ local function kernel_boot_coroutine_body(_G, module)
 	local GetNextEnvironmentThreshold = GetNextEnvironmentThreshold
 	local GetEnvironmentLayer = GetEnvironmentLayer
 	local GetOuterEnvironment = GetOuterEnvironment
-
-	AddKernelComponent("invariants", boot_params, wicker_stem)
 
 	AddKernelComponent("advanced_importers", 
 		AddKernelComponent("basic_importers", boot_params, wicker_stem))

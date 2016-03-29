@@ -39,12 +39,15 @@ local REMOTESHARDSTATE_NAME = inv(REMOTESHARDSTATE)
 
 ---
 
-local Shard = Class(Debuggable, function(self, id)
+local Shard = Class(Debuggable, function(self, graph, id)
 	Debuggable._ctor(self, self, false)
 
+	assert( Pred.IsShardGraph(graph) )
 	assert( type(id) == "string" )
 
+	self.graph = graph
 	self.id = id
+
 	self.state = REMOTESHARDSTATE[id == GetShardId() and "READY" or "OFFLINE"]
 
 	self.metadata = {}
@@ -58,6 +61,10 @@ function Shard:__tostring()
 	return str
 end
 
+function Shard:GetDebugString()
+	return tostring(self)..": metadata = "..table_dump(self.metadata)
+end
+
 function Shard:InDegree()
 	return #self.inportals
 end
@@ -68,19 +75,23 @@ end
 
 function Shard:UpdateWorldState(state, ...)
 	self.state = state
-	self.metadata = {...}
+	-- self.metadata = {...}
 end
 
 ---
 
-function Shard.NewShardStorage(storage)
+function Shard.NewShardStorage(graph, storage)
+	assert( Pred.IsShardGraph(graph) )
+	assert( Pred.IsTable(storage) )
 	return function(id)
+		if id == nil then return end
+
 		if getmetatable(id) == Shard then
 			return id
 		end
 		local sh = storage[id]
 		if sh == nil then
-			sh = Shard(id)
+			sh = Shard(graph, id)
 			storage[id] = sh
 		end
 		return sh

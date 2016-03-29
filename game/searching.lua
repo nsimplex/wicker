@@ -144,7 +144,9 @@ end
 -- necessarily uses metric properties.
 local function MakeMetricFinder(basic_prototype, gens)
 	local metric_gen = assert( gens.metric )
-	return Lambda.BindFirst(basic_prototype, metric_gen)
+	return function(center, radius, fn, ...)
+		return basic_prototype(metric_gen, fn, center, radius)
+	end
 end
 
 -- Takes a basic_finders prototype and returns a wrapped version of it which
@@ -164,7 +166,7 @@ local function MakeOptionallyMetricFinder(basic_prototype, gens)
 		else
 			gen = metric_gen
 		end
-		return basic_prototype(gen, center, radius, fn, ...)
+		return basic_prototype(gen, fn, center, radius, ...)
 	end
 end
 

@@ -231,7 +231,7 @@ local function include_platform_detection_functions(_G, kernel)
 	IfShard = IfShardedServer
 
 	GetShardId = memoize_0ary(function()
-		if cab_be_shard() then
+		if can_be_shard() then
 			local id = _G.TheShard:GetShardId()
 			assert( type(id) == "string" )
 			return id
