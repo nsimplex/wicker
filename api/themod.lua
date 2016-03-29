@@ -166,6 +166,12 @@ end
 Mod.IsDevel = Mod.IsDev
 Mod.IsDevelopment = Mod.IsDev
 
+-- Turns a function into a fake method.
+function Mod:EmbedFunction(k, f)
+	self[k] = function(_, ...)
+		return f(...)
+	end
+end
 
 -- Normalizes an Add- or hook id.
 local function normalize_id(id)

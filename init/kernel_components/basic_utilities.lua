@@ -83,6 +83,13 @@ local function include_platform_detection_functions(_G, kernel)
 	local getmetatable = _G.getmetatable
 	local setmetatable = _G.setmetatable
 
+	local type = _G.type
+
+	local pairs = _G.pairs
+	local ipairs = _G.ipairs
+
+	local next = _G.next
+
 	local detect_meta = {
 		__index = kernel,
 		__newindex = function(t, k, v)
@@ -305,6 +312,8 @@ end
 ----------
 
 return function()
+	local _G = _G
+
 	local assert, error = assert( _G.assert ), assert( _G.error )
 	local type = assert( _G.type )
 	local rawget = assert( _G.rawget )
@@ -591,4 +600,113 @@ return function()
 		t = InjectNonPrivatesIntoTableIf(function() return true end, t, f, s, var)
 		return t
 	end
+
+
+	local function ShallowInject(tgt, src)
+		for k, v in pairs(src) do
+			tgt[k] = v
+		end
+		return tgt
+	end
+	_M.ShallowInject = ShallowInject
+
+	local function ShallowCopy(t)
+		return ShallowInject({}, t)
+	end
+	_M.ShallowCopy = ShallowCopy
+
+	local function DeepTreeInject(tgt, src)
+		for k, v in pairs(src) do
+			if type(v) == "table" then
+				local tgt_k = tgt[k]
+				if type(tgt_k) ~= "table" then
+					tgt_k = {}
+					tgt[k] = tgt_k
+				end
+				DeepTreeInject(tgt_k, v)
+			else
+				tgt[k] = v
+			end
+		end
+	end
+	_M.DeepTreeInject = DeepTreeInject
+	_M.DeepInject = DeepTreeInject
+
+	local function DeepTreeCopy(t)
+		return DeepTreeInject({}, t)
+	end
+	_M.DeepTreeCopy = DeepTreeCopy
+	_M.DeepCopy = DeepCopy
+
+	local function DeepGraphInject_internal(tgt, src, refmap)
+		for k, v in pairs(src) do
+			if type(v) == "table" then
+				local tgt_k = refmap[v]
+				if tgt_k ~= nil then
+					tgt[k] = tgt_k
+				else
+					tgt_k = tgt[k]
+					if type(tgt_k) ~= "table" then
+						tgt_k = {}
+						tgt[k] = tgt_k
+					end
+
+					refmap[v] = tgt_k
+
+					DeepGraphInject_internal(tgt_k, v, refmap)
+				end
+			end
+		end
+	end
+
+	local function DeepGraphInject(tgt, src)
+		return DeepGraphInject_internal(tgt, src, {[src] = tgt})
+	end
+	_M.DeepGraphInject = DeepGraphInject
+
+	local function DeepGraphCopy(t)
+		return DeepGraphInject({}, t)
+	end
+	_M.DeepGraphCopy = DeepGraphCopy
+
+	-- Returns the size of a table including *all* entries.
+	local function cardinal(t)
+		local sz = 0
+		for _ in pairs(t) do
+			sz = sz + 1
+		end
+		return sz
+	end
+	_M.cardinal = cardinal
+	_M.GetTableCardinality = cardinal
+
+	-- Compares cardinal(t) and n.
+	--
+	-- Returns -1 if cardinal(t) < n
+	-- Returns 0 if cardinal(t) == n
+	-- Returns +1 if cardinal(t) > n
+	local function cardinalcmp(t, n)
+		-- cardinal(t) - n
+		local difference = -n
+		for _ in pairs(t) do
+			difference = difference + 1
+			if difference > 0 then
+				return 1
+			end
+		end
+		if difference == 0 then
+			return 0
+		else
+			return -1
+		end
+	end
+	_M.cardinalcmp = cardinalcmp
+
+	local function table_dump(t)
+		require "dumper"
+
+		local str = _G.DataDumper(t, nil, false)
+		return ( str:gsub("^return%s*", "") )
+	end
+	_M.table_dump = table_dump
 end
