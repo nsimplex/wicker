@@ -211,6 +211,16 @@ local function include_platform_detection_functions(_G, kernel)
 	IfShardedServer = immutable_lambdaif(IsShardedServer)
 	IfShard = IfShardedServer
 
+	GetShardId = memoize_0ary(function()
+		if cab_be_shard() then
+			local id = _G.TheShard:GetShardId()
+			assert( type(id) == "string" )
+			return id
+		else
+			return "1"
+		end
+	end)
+
 	---
 
 	if VarExists("IsDLCEnabled") then
@@ -702,11 +712,12 @@ return function()
 	end
 	_M.cardinalcmp = cardinalcmp
 
-	local function table_dump(t)
+	local function value_dump(t)
 		require "dumper"
 
 		local str = _G.DataDumper(t, nil, false)
 		return ( str:gsub("^return%s*", "") )
 	end
-	_M.table_dump = table_dump
+	_M.value_dump = value_dump
+	_M.table_dump = value_dump
 end
