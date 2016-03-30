@@ -29,9 +29,15 @@ local ShardGraph = Class(Debuggable, function(self)
 	self.allow_loops = false
 
 	-- Arcs. Maps to portals.
-	self.adjs = {
-		[self.shard(GetShardId())] = emptyadj()
-	}
+	self.adjs = {}
+
+	TheMod:AddGamePostInit(function()
+		local center = self.shard(GetShardId())
+
+		self:Say("Adding ", center:GetDebugString())
+
+		self.adjs[center] = emptyadj()
+	end)
 end)
 Pred.IsShardGraph = Pred.IsInstanceOf(ShardGraph)
 
@@ -143,13 +149,17 @@ if IsDST() then
 
 	local Shard_UpdateWorldState = assert( _G.Shard_UpdateWorldState )
 	_G.Shard_UpdateWorldState = function(world_id, state, ...)
-		AddShard(TheShardGraph, world_id):UpdateWorldState(state, ...)
+		local sh = AddShard(TheShardGraph, world_id)
+
+		sh:UpdateWorldState(state, ...)
+
+		TheShardGraph:Say("Updated ", sh:GetDebugString())
 
 		local rets = {Shard_UpdateWorldState(world_id, state, ...)}
 
-		if TheShardGraph:Debug() then
-			TheShardGraph:Say("updated world state:\n", TheShardGraph:GetInfoString())
-		end
+		-- TODO: portal hookup
+
+		return unpack(rets)
 	end
 
 	local Shard_UpdatePortalState = assert( _G.Shard_UpdatePortalState )
@@ -159,6 +169,7 @@ if IsDST() then
 			assert( wm.id )
 			AddPortal(TheShardGraph, wm.id):SetEntity(inst)
 		end
+
 		return Shard_UpdatePortalState(inst, ...)
 	end
 end

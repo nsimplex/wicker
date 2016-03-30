@@ -129,32 +129,153 @@ end
 
 ----------
 
+-- "tee" here refers to the Unix utility tee.
+-- We provide similar functionality where environment newindexing takes place
+-- of text output.
+local tee, clear_tee = (function()
+	local env_data = {}
+
+	local function get_env_data(env)
+		local data = env_data[env]
+		if data == nil then
+			data = { get = NewGetter(env) }
+			env_data[env] = data
+		end
+		return data
+	end
+
+	local tee
+	local get_tees, clear_tees
+	local get_tree_newindex
+
+	local function get_tees_meta(env)
+		local data = get_env_data(env)
+		local meta = data.teesmeta
+		if meta == nil then
+			meta = {
+				__call = function()
+					clear_tees(env)
+				end
+			}
+			data.teesmeta = meta
+		end
+		return meta
+	end
+
+	get_tees = function(env)
+		local data = get_env_data(env)
+		local tees = data.tees
+		if tees == nil then
+			tees = data.get.setmetatable({}, get_tees_meta(env))
+			data.tees = tees
+
+			local env_meta = data.get.getmetatable(env)
+			if env_meta == nil then
+				env_meta = {}
+				data.get.setmetatable(env, env_meta)
+				data.had_meta = false
+			else
+				data.had_meta = true
+				data.oldnewindex = env_meta.__newindex
+			end
+
+			env_meta.__newindex = get_tree_newindex(env)
+		end
+		return tees
+	end
+
+	clear_tees = function(env)
+		local data = env_data[env]
+		if data then
+			env_data[env] = nil
+			local tees = data.tees
+			if tees then
+				if not data.had_meta then
+					data.get.setmetatable(env, nil)
+				else
+					data.get.getmetatable(env).__newindex = data.oldnewindex
+				end
+			end
+		end
+	end
+
+	local function clear_tee(env, t)
+		local data = get_env_data(env)
+		local tees = get_tees(env)
+		tees[t] = nil
+		if data.get.next(tees) == nil then
+			return clear_tees(env)
+		end
+	end
+
+	get_tree_newindex = function(env)
+		local data = get_env_data(env)
+		local newindex = data.newindex
+		if newindex == nil then
+			local tees = get_tees(env)
+			
+			local pairs = data.get.pairs
+			local rawset = data.get.rawset
+
+			newindex = function(t, k, v)
+				for tee in pairs(tees) do
+					tee[k] = v
+				end
+				rawset(t, k, v)
+			end
+
+			data.newindex = newindex
+		end
+		return newindex
+	end
+
+	local function get_tee_meta(env)
+		local data = get_env_data(env)
+		local meta = data.teemeta
+		if meta == nil then
+			meta = {
+				__call = function(self)
+					clear_tee(env, self[self])
+				end,
+			}
+			data.teemeta = meta
+		end
+		return meta
+	end
+
+	local function tee(env, t)
+		t = t or {}
+
+		local data = get_env_data(env)
+
+		local ret = {}
+		ret[ret] = t
+		data.get.setmetatable(ret, get_tee_meta(env))
+
+		local tees = get_tees(env)
+		tees[t] = true
+
+		return ret
+	end
+
+	return tee, clear_tee
+end)()
+
 local function make_inner_env(kernel)
 	local get = NewGetter(kernel)
 
-	local rawset = get.rawset
-	local setmetatable = get.setmetatable
-	local setfenv = get.setfenv
+	local inner_env = {}
+	inner_env._M = inner_env
 
 	local inner_meta = {
 		__index = kernel,
-		__newindex = function(t, k, v)
-			kernel[k] = v
-			rawset(t, k, v)
-		end,
 	}
+	get.setmetatable(inner_env, inner_meta)
 
-	local function finalize(self)
-		inner_meta.__newindex = nil
-		return self
-	end
-	inner_meta.__call = finalize
+	local proto = tee(inner_env, kernel)
+inner_meta.__call = function(...) return proto(...) end
 
-	local inner_env = {}
-	inner_env._M = inner_env
-	setmetatable(inner_env, inner_meta)
-
-	setfenv(2, inner_env)
+	get.setfenv(2, inner_env)
 
 	return inner_env
 end
@@ -521,8 +642,8 @@ local function include_constants(kernel)
 	}
 
 	if IsDST() then
-		addConstants("SHARDID", assert(_G.SHARDID))
-		addConstants("REMOTESHARDSTATE", assert(_G.REMOTESHARDSTATE))
+		_M.SHARDID = assert(_G.SHARDID)
+		_M.REMOTESHARDSTATE = assert(_G.REMOTESHARDSTATE)
 	else
 		addConstants "SHARDID" {
 			CAVE_PREFIX = "2",
@@ -709,9 +830,10 @@ local function include_introspectionlib(kernel)
 
 	---
 	
-	local function getSaveIndex()
+	local function GetSaveIndex()
 		return rawget(_G, "SaveGameIndex")
 	end
+	_M.GetSaveIndex = GetSaveIndex
 
 	local function current_wrap(fn)
 		return function(...)
@@ -722,7 +844,7 @@ local function include_introspectionlib(kernel)
 	local function GetCurrentSaveSlot()
 		local slot = nil
 
-		local sg = getSaveIndex()
+		local sg = GetSaveIndex()
 		if sg then
 			slot = sg:GetCurrentSaveSlot()
 		end
@@ -737,7 +859,7 @@ local function include_introspectionlib(kernel)
 	else
 		GetSlotMode = function(slot)
 			slot = slot or GetCurrentSaveSlot()
-			local sg = getSaveIndex()
+			local sg = GetSaveIndex()
 			if sg then
 				return sg:GetCurrentMode(slot)
 			end
@@ -750,7 +872,7 @@ local function include_introspectionlib(kernel)
 
 	local function GetSlotData(slot)
 		slot = slot or GetCurrentSaveSlot()
-		local sg = getSaveIndex()
+		local sg = GetSaveIndex()
 		if sg and sg.data and sg.data.slots then
 			return sg.data.slots[slot]
 		end
@@ -772,7 +894,7 @@ local function include_introspectionlib(kernel)
 	else
 		GetSlotWorldData = function(slot)
 			slot = slot or GetCurrentSaveSlot()
-			local sg = getSaveIndex()
+			local sg = GetSaveIndex()
 			if sg then
 				return sg:GetModeData(slot, GetSlotMode(slot))
 			end
@@ -784,7 +906,7 @@ local function include_introspectionlib(kernel)
 		GetSlotCaveNum = One
 	else
 		GetSlotCaveNum = function(slot)
-			local sg = getSaveIndex()
+			local sg = GetSaveIndex()
 			if sg then
 				return sg:GetCurrentCaveNum(slot)
 			end
@@ -799,7 +921,7 @@ local function include_introspectionlib(kernel)
 		GetSlotCaveLevel = Nil
 	else
 		GetSlotCaveLevel = function(slot, cavenum)
-			local sg = getSaveIndex()
+			local sg = GetSaveIndex()
 			if sg and GetSlotMode(slot) == "cave" then
 				slot = slot or GetCurrentSaveSlot()
 				cavenum = cavenum or GetSlotCaveNum(slot)
@@ -811,7 +933,7 @@ local function include_introspectionlib(kernel)
 	---
 
 	IsSWLevel = memoize_0ary(function()
-		local sg = getSaveIndex()
+		local sg = GetSaveIndex()
 		if sg then
 			return sg:IsModeShipwrecked()
 		end
@@ -831,7 +953,7 @@ local function include_introspectionlib(kernel)
 				return SHARDID.INVALID
 			end
 
-			if IsDST() or not getSaveIndex() then
+			if IsDST() or not GetSaveIndex() then
 				return nil
 			end
 
@@ -850,8 +972,10 @@ local function include_introspectionlib(kernel)
 	local function GetShardId()
 		local id = doGetShardId()
 		if id == nil then
-			return SHARDID.INVALID
+			assert(SHARDID.INVALID)
+			id = SHARDID.INVALID
 		end
+		return id
 	end
 	_M.GetShardId = GetShardId
 	_M.GetShardID = GetShardId
@@ -1157,13 +1281,28 @@ end
 
 return function()
 	local kernel = _M
+	local _G = kernel._G
+
+	---
+	
+	PLATFORM_DETECTION = {}
+	INTROSPECTION_LIB = {}
+
+	tee(kernel, PLATFORM_DETECTION)
+	tee(kernel, INTROSPECTION_LIB)
 
 	---
 
 	include_corelib(kernel)
-	PLATFORM_DETECTION = include_platform_detection_functions(kernel)
+
+	include_platform_detection_functions(kernel)
+
 	include_constants(kernel)
+	clear_tee(kernel, PLATFORM_DETECTION)
+
 	include_introspectionlib(kernel)
+	clear_tee(kernel, INTROSPECTION_LIB)
+
 	include_auxlib(kernel)
 
 	---

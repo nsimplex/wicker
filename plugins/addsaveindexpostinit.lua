@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 function AddSaveIndexPostInit(fn)
 	require 'saveindex'
 
-	AddGlobalClassPostConstruct("saveindex", "SaveIndex", fn)
+	TheMod:AddGlobalClassPostConstruct("saveindex", "SaveIndex", fn)
 
 	local instance = rawget(_G, "SaveGameIndex")
 	if instance then
