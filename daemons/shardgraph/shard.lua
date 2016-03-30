@@ -10,21 +10,8 @@ local getmetatable = getmetatable
 
 ---
 
-local SHARDID
-local REMOTESHARDSTATE
-if IsDST() then
-	SHARDID = assert( _G.SHARDID )
-	REMOTESHARDSTATE = assert( _G.REMOTESHARDSTATE )
- else
-	SHARDID = {
-		INVALID = "0", 
-		MASTER = "1",
-	}
-	REMOTESHARDSTATE = {
-		OFFLINE = 0, 
-		READY = 1, 
-	}
-end
+local SHARDID = assert( SHARDID )
+local REMOTESHARDSTATE = assert( REMOTESHARDSTATE )
 
 local function inv(t)
 	local u = {}
@@ -54,7 +41,7 @@ local Shard = Class(Debuggable, function(self, graph, id)
 end)
 
 function Shard:__tostring()
-	local str = ("Shard %s"):format(self.id)
+	local str = ("Shard(%s)"):format(self.id)
 	if self.state ~= REMOTESHARDSTATE.READY then
 		str = str..(" (%s)"):format(REMOTESHARDSTATE_NAME[self.state])
 	end
@@ -75,6 +62,8 @@ end
 
 function Shard:UpdateWorldState(state, ...)
 	self.state = state
+	print "UpdateWorldState!"
+	print(...)
 	-- self.metadata = {...}
 end
 

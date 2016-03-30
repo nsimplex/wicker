@@ -490,7 +490,7 @@ if not IsDST() then
 		if taskset_id then
 			expandTaskSet(addentry, taskset_id)
 		else
-			extractTaskSet(taskset_id)
+			extractTaskSet(data)
 		end
 
 		data.overrides = shrinkOverrides(data.overrides)

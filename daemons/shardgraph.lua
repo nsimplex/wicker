@@ -1,5 +1,3 @@
--- TODO: pass parent objects to Shard and Portal
-
 --[[
 -- Abstracts over the connection of shards through portals.
 --]]
