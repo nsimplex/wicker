@@ -41,12 +41,17 @@ for _, k in ipairs{
 end
 
 
-local is_type_cache = {}
-local function is_type(t)
-	local ret = function(x)
-		return type(x) == t
+local is_type_cache = {
+	["nil"] = Lambda.IsNil,
+}
+local function is_type(ty)
+	local ret = is_type_cache[ty]
+	if ret == nil then
+		ret = function(x)
+			return type(x) == ty
+		end
+		is_type_cache[ty] = ret
 	end
-	is_type_cache[t] = ret
 	return ret
 end
 
@@ -57,23 +62,12 @@ IsString = is_type "string"
 IsTable = is_type "table"
 IsNil = Lambda.IsNil
 
-is_type_cache["nil"] = Lambda.IsNil
-
-function IsType(t)
-	return is_type_cache[t]
+function IsType(ty)
+	return is_type_cache[ty] or Lambda.False
 end
 
-
-function IsPrivate(x)
-	return x:find('^_') ~= nil
-end
-
-IsPublic = Lambda.Not(IsPrivate)
-
-for _, access in ipairs {'Private', 'Public'} do
-	_M['Is' .. access .. 'String'] = Lambda.And( IsString, _M['Is' .. access] )
-end
-
+IsPublicString = assert( IsPublicString )
+IsPrivateString = assert( IsPrivateString )
 
 function IsPositive(x)
 	return x > 0
@@ -102,13 +96,19 @@ end
 IsProbability = Lambda.And( IsNumber, IsInClosedRange(0, 1) )
 
 -- Returns the metamethod if it exists.
-function HasMetaMethod(method)
-	local mname = "__"..method
-	return function(x)
-		local m = getmetatable(x)
-		return m and rawget(m, mname)
-	end
-end
+HasMetaMethod = assert( metatable.getmetamethod )
+
+IsCallable = Lambda.IsFunctional
+IsFunctional = Lambda.IsFunctional
+
+IsStringable = Lambda.Or( IsString, HasMetaMethod("tostring") )
+IsWordable = IsStringable
+
+IsIndexable = Lambda.Or( IsTable, HasMetaMethod("index") )
+IsNewIndexable = Lambda.Or( IsTable, HasMetaMethod("newindex") )
+
+
+
 
 IsCallableTable = Lambda.And(IsTable, HasMetaMethod("call"))
 
@@ -176,16 +176,6 @@ function IsClassOf(x)
 end
 
 IsTypeOf = IsClassOf
-
-
-IsCallable = Lambda.IsFunctional
-IsFunctional = Lambda.IsFunctional
-
-IsStringable = Lambda.Or( IsString, HasMetaMethod("tostring") )
-IsWordable = IsStringable
-
-IsIndexable = Lambda.Or( IsTable, HasMetaMethod("index") )
-IsNewIndexable = Lambda.Or( IsTable, HasMetaMethod("newindex") )
 
 
 -------------------------------------------------------------

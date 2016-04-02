@@ -88,7 +88,7 @@ return function(importer_metadata)
 				end
 			end
 	
-			attacher( M, env )
+			attacher( env, M )
 	
 			return M
 		end

@@ -233,7 +233,7 @@ return function()
 			end,
 		})
 
-		AttachMetaIndex(LazyCopier(raw_G, import_filter), t)
+		AttachMetaIndex(t, LazyCopier(raw_G, import_filter))
 
 		for _, k in ipairs(mandatory_imports) do
 			assert( rawget(_G, k) ~= nil, ("The mandatory import %q doesn't exist!"):format(k) )

@@ -85,7 +85,7 @@ end)
 function Shard:__tostring()
 	local str = "Shard"
 	if self.name then
-		str = str.." "..tostring(name)
+		str = str.." "..tostring(self.name)
 	end
 	str = str.."("..tostring(self.id)..")"
 	if self.state ~= REMOTESHARDSTATE.READY then

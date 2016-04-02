@@ -44,19 +44,36 @@ local setfenv = setfenv
 local Lambda = _M
 
 function IsFunctional(x)
-	return type(x) == "function" or getmetatable(x) and getmetatable(x).__call
+	if type(x) == "function" then
+		return true
+	else
+		local mt = getmetatable(x)
+		return mt and mt.__call
+	end
 end
 local IsFunctional = IsFunctional
 
 function Identity(...)
 	return ...
 end
+local Identity = Identity
+Id = Identity
+id = Identity
+
+function SimpleIdentity(x)
+	return x
+end
+local SimpleIdentity = SimpleIdentity
+SimpleId = SimpleIdentity
+simpleid = SimpleIdentity
 
 function Constant(x)
 	return function()
 		return x
 	end
 end
+local Constant = Constant
+const = Constant
 
 function ConstantList(...)
 	local L = {...}
@@ -64,11 +81,23 @@ function ConstantList(...)
 		return unpack(L)
 	end
 end
+local ConstantList = ConstantList
+ConstantTuple = ConstantList
+constlist = ConstantList
+consttuple = ConstantList
 
-Nil = Constant()
+-- We do not define it as 'Constant()' to have 0 return values in a variadic
+-- context.
+Nil = function() end
+local Nil = Nil
 
-True = Constant(true)
-False = Constant(false)
+-- A function that returns a unique value each time it runs. Each of these
+-- values is a universally unique id for the lua state.
+IONil = function() return {} end
+local IONil = IONil
+
+True, False = Constant(true), Constant(false)
+local True, False = True, False
 
 Zero = Constant(0)
 One = Constant(1)
@@ -76,13 +105,10 @@ Omega = Constant(math.huge)
 
 EmptyString = Constant("")
 
--- Something that is different from everything else.
--- The name is a reference to the Alexandroff Compactification construction in Topology.
-PointAtInfinity = Constant({})
-
 function Table(...)
 	return {...}
 end
+pack = Table
 
 function IsEqualTo(a)
 	return function(x)
@@ -99,6 +125,11 @@ IsNil = IsEqualTo()
 -- may return a proper nil instead of returning nothing. Usual return checks work.
 --]]
 
+function Call(f, ...)
+	return f(...)
+end
+local Call = Call
+call = Call
 
 function Compose(f, g)
 	assert( IsFunctional(f) )
@@ -107,6 +138,8 @@ function Compose(f, g)
 		return f(g(...))
 	end
 end
+local Compose = Compose
+compose = Compose
 
 ---
 -- Cartesian product of two functions of the same domain.
@@ -148,14 +181,17 @@ end
 
 
 FirstOf = Head
+fst = FirstOf
 
 function SecondOf(x, y)
 	return y
 end
+snd = SecondOf
 
 function ThirdOf(x, y, z)
 	return z
 end
+trd = ThirdOf
 
 function LastOf(...)
 	local n = select('#', ...)
@@ -163,16 +199,19 @@ function LastOf(...)
 		return select(n, ...)
 	end
 end
+lst = LastOf
 
 function Nth(n)
 	return function(...)
 		return ( select(n, ...) )
 	end
 end
+nth = Nth
 
 function NthOf(...)
 	return Compose( EvaluationMap(...), Nth )
 end
+nthof = NthOf
 
 -- Normalizes indexes using the standard Lua convention for negative ones.
 function NormalizeIndices(i, j, n)
@@ -226,16 +265,17 @@ end
 function FlipFirstTwo(a, b, ...)
 	return b, a, ...
 end
+flip = FlipFirstTwo
 
 -- i and j are the positions to be flipped.
-function Flip(i, j, ...)
+function GeneralFlip(i, j, ...)
 	local t = {...}
 	i, j = NormalizeIndices(i, j, #t)
 	t[i], t[j] = t[j], t[i]
 	return unpack(t)
 end
 
-Transpose = Flip
+Transpose = GeneralFlip
 
 
 local function BindHead(f, x)
@@ -255,24 +295,30 @@ _M.BindTail = BindTail
 
 
 BindFirst = BindHead
+bindfst = BindFirst
+Bind = BindFirst
+bind = BindFirst
 
 function BindSecond(f, y)
 	return function(x, ...)
 		return f(x, y, ...)
 	end
 end
+bindsnd = BindSecond
 
 function BindThird(f, z)
 	return function(x, y, ...)
 		return f(x, y, z, ...)
 	end
 end
+bindtrd = BindThird
 
 function BindLast(f, x)
 	return function(...)
 		return f(Append(x, ...))
 	end
 end
+bindlst = BindLast
 
 function BindAll(f, ...)
 	local Args = {...}
@@ -280,15 +326,16 @@ function BindAll(f, ...)
 		return f(unpack(Args))
 	end
 end
+bindall = BindAll
 
 
-local function Curry(f, n)
+local function FullCurry(f, n)
 	if n <= 0 then return f end
 	return function(x)
-		return Curry( BindHead(f, x), n - 1 )
+		return FullCurry( BindFirst(f, x), n - 1 )
 	end
 end
-_M.Curry = Curry
+_M.FullCurry = FullCurry
 
 function BinaryCurry(f)
 	return function(x)
@@ -297,8 +344,20 @@ function BinaryCurry(f)
 		end
 	end
 end
+local BinaryCurry = BinaryCurry
+binarycurry = BinaryCurry
 
-function Uncurry(f)
+function Curry(f)
+	return function(x)
+		return function(...)
+			return f(x, ...)
+		end
+	end
+end
+local Curry = Curry
+curry = Curry
+
+function FullUncurry(f)
 	return function(...)
 		local g = f
 		for _, x in ipairs{...} do
@@ -307,6 +366,21 @@ function Uncurry(f)
 		return g
 	end
 end
+
+function BinaryUncurry(f)
+	return function(x, y)
+		return f(x)(y)
+	end
+end
+binaryuncurry = BinaryUncurry
+
+function Uncurry(f)
+	return function(x, ...)
+		return f(x)(...)
+	end
+end
+local Uncurry = Uncurry
+uncurry = uncurry
 
 
 function Less(a, b)
@@ -438,5 +512,114 @@ QueueEraser = QueueRemover
 function QueueGetter(q)
 	return function()
 		return q[1]
+	end
+end
+
+---
+
+Function = {
+	__concat = Compose,
+	__mod = BindFirst,
+
+	-- Not actually executed since Lua only checks for it when the value isn't
+	-- a function. It is here only for reflection.
+ 	__call = Call,
+}
+debug.setmetatable(Nil, Function)
+
+---
+
+-- 
+-- The parameter is a variadic type constructor for the node tests.
+--
+-- The boolean algebra objects are tables representing an expression tree.
+-- They can be called, taking a function performing a fold over nodes.
+-- The return value of such call is a boolean representing if the test passed
+-- or not, followed by the folded value.
+--
+-- Each leaf should be callable, returning a status boolean followed by an
+-- optional extra return value to be folded over.
+--
+function NewBooleanAlgebra(make_node, defaults)
+	local setmetatable = setmetatable
+	local ipairs = ipairs
+
+	assert(defaults)
+
+	local f = assert(defaults.fold)
+
+	local meta = {}
+
+	local function bless(p)
+		return setmetatable(p, meta)
+	end
+
+	local function foldl(f, z)
+		return function(array)
+			for _, v in ipairs(array) do
+				z = f(z, v)
+			end
+			return z
+		end
+	end
+
+	local function NOT(p)
+		return bless {kind = "NOT", p}
+	end
+
+	local function AND(...)
+		return bless {kind = "AND", ...}
+	end
+
+	local function OR(...)
+		return bless {kind = "OR", ...}
+	end
+
+	local function internal_evaluate(r, ...)
+		local kind = r.kind
+		if kind == nil then
+			-- atomic (i.e. leaf)
+			return r[1](...)
+		elseif kind == "NOT" then
+			-- Note the flipped 'z's.
+			local status, z = internal_evaluate(r[1], ...)
+			return not status, z
+		elseif kind == "AND" then
+			local z = nil
+			for _, v in ipairs(r) do
+				local status, inner_z = internal_evaluate(v, ...)
+				z = f(z, inner_z)
+				if not status then
+					return false, z
+				end
+			end
+			return true, z
+		elseif kind == "OR" then
+			local z = nil
+			for _, v in ipairs(r) do
+				local status, inner_z = internal_evaluate(v, ...)
+				z = f(z, inner_z)
+				if status then
+					return true, z
+				end
+			end
+			return false, z
+		else
+			print(tostring(kind))
+			return error "Logic error."
+		end
+	end
+
+	local function evaluate(r, ...)
+		return internal_evaluate(r, ...)
+	end
+	meta.__call = evaluate
+
+	meta.__unm = NOT
+	meta.__add = OR
+	meta.__mul = AND
+
+	return function(...)
+		return bless { (make_node(...)) }
 	end
 end

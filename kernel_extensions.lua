@@ -5,7 +5,7 @@
 -----
 
 --[[
--- Called by init.lua after bootstrapping.
+-- Called by boot.lua after bootstrapping.
 --]]
 
 --[[
@@ -33,91 +33,6 @@ local submodules = {
 
 ---
 
-local function process_getinfo_args(thread, ...)
-	if thread == nil then
-		return ...
-	else
-		return thread, ...
-	end
-end
-
-local function traceback(thread, message, start_level)
-	if thread ~= nil and type(thread) ~= "thread" then
-		thread, message, start_level = nil, thread, message
-	end
-
-	if start_level == nil and type(message) == "number" then
-		start_level, message = message, nil
-	end
-
-	local pieces = {}
-	if message ~= nil then
-		table.insert(pieces, tostring(message))
-	end
-	table.insert(pieces, "stack traceback:")
-
-	local getinfo = debug.getinfo
-
-	for lvl = (start_level or 1) + 1, math.huge do
-		local info = getinfo( process_getinfo_args(thread, lvl, "nSl") )
-		if info == nil then break end
-
-		local is_C = (info.what == "C")
-		local is_tailcall = (info.source == "=(tail call)")
-
-		local src
-
-		local primary_location
-		if is_C then
-			primary_location = "[C]"
-		elseif is_tailcall then
-			primary_location = "(tail call)"
-		else
-			src = info.source
-			if src then
-				src = src:gsub("^@", "")
-			else
-				src = "???"
-			end
-			primary_location = src..":"..(info.currentline or "???")
-		end
-
-		local secondary_location
-		if is_C or is_tailcall then
-			secondary_location = "?"
-		elseif info.what == "main" then
-			secondary_location = "in main chunk"
-		else
-			local name = info.name
-			if name then
-				name = "'"..name.."'"
-			else
-				name = "<"..(src or "???")..">"
-			end
-			local modifier = info.namewhat
-			if modifier and #modifier > 0 then
-				modifier = modifier.." "
-			else
-				modifier = ""
-			end
-			secondary_location = "in "..modifier.."function "..name
-		end
-
-		local subpieces = {
-			"\t",
-			primary_location,
-			": ",
-			secondary_location,
-		}
-
-		table.insert(pieces, table.concat(subpieces))
-	end
-
-	return table.concat(pieces, "\n")
-end
-
----
-
 local function dobasicextend(kernel)
 	local Lambda = wickerrequire "paradigms.functional"
 	local Logic = wickerrequire "lib.logic"
@@ -130,12 +45,6 @@ local function dobasicextend(kernel)
 	kernel.Game = Game
 
 	kernel.Nil = Lambda.Nil
-
-	kernel.traceback = traceback
-
-	kernel.ptraceback = function(message, lvl)
-		TheMod:Say(traceback(message, (lvl or 1) + 1))
-	end
 end
 
 local function doextend(kernel)

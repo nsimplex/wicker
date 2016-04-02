@@ -42,10 +42,13 @@ local error = assert( _G.error )
 local require = assert( _G.require )
 local coroutine = assert( _G.coroutine )
 local type = assert( _G.type )
+local math = assert( _G.math )
 local table = assert( _G.table )
 local pairs = assert( _G.pairs )
 local ipairs = assert( _G.ipairs )
+local tostring = assert( _G.tostring )
 local setfenv = assert( _G.setfenv )
+local debug = assert( _G.debug )
 
 
 local function super_basic_module(name)
@@ -63,6 +66,16 @@ end
 setfenv(1, super_basic_module(...))
 
 
+local FAILED_RUNNING = false
+
+local function fail(message, level)
+	level = level or 1
+	if level > 0 then
+		level = level + 1
+	end
+	FAILED_RUNNING = true
+	return error(tostring(message), level)
+end
 
 local preprocess_boot_params = (function()
 	local default_boot_params = {
@@ -90,11 +103,11 @@ local preprocess_boot_params = (function()
 		end
 
 		if type(boot_params.modcode_root) ~= "string" then
-			return error("String expected as boot parameter 'modcode_root'.", 3)
+			return fail("String expected as boot parameter 'modcode_root'.", 3)
 		end
 
 		if type(boot_params.id) ~= "string" then
-			return error("String expected as boot parameter 'id'", 3)
+			return fail("String expected as boot parameter 'id'", 3)
 		end
 
 		if not boot_params.modcode_root:match("[%./\\]$") then
@@ -109,8 +122,123 @@ local preprocess_boot_params = (function()
 	end
 end)()
 
+---
+
+local function process_getinfo_args(thread, ...)
+	if thread == nil then
+		return ...
+	else
+		return thread, ...
+	end
+end
+
+local function traceback(thread, message, start_level)
+	if thread ~= nil and type(thread) ~= "thread" then
+		thread, message, start_level = nil, thread, message
+	end
+
+	local is_same_thread = true
+	if thread ~= nil then
+		is_same_thread = (thread == coroutine.running())
+	end
+
+	if start_level == nil and type(message) == "number" then
+		start_level, message = message, nil
+	end
+
+	if is_same_thread then
+		start_level = start_level or 1
+		start_level = start_level + 1
+	else
+		start_level = start_level or 0
+	end
+
+	local header = "stack traceback:"
+
+	local pieces = {}
+	if message ~= nil then
+		message = tostring(message)
+		local head, tail = message:match("^(.-)\a(.*)$")
+		if head then
+			table.insert(pieces, head)
+			table.insert(pieces, tail.." "..header)
+			header = nil
+		else
+			table.insert(pieces, message)
+		end
+	end
+	if header then
+		table.insert(pieces, header)
+	end
+
+	local getinfo = debug.getinfo
+
+	for lvl = start_level, math.huge do
+		local info = getinfo( process_getinfo_args(thread, lvl, "nSl") )
+		if info == nil then break end
+
+		local is_C = (info.what == "C")
+		local is_tailcall = (info.source == "=(tail call)")
+
+		local src
+
+		local primary_location
+		if is_C then
+			primary_location = "[C]"
+		elseif is_tailcall then
+			primary_location = "(tail call)"
+		else
+			src = info.source
+			if src then
+				src = src:gsub("^@", "")
+			else
+				src = "???"
+			end
+			primary_location = src..":"..(info.currentline or "???")
+		end
+
+		local secondary_location
+		if is_C or is_tailcall then
+			secondary_location = "?"
+		elseif info.what == "main" then
+			secondary_location = "in main chunk"
+		else
+			local name = info.name
+			if name then
+				name = "function '"..name.."'"
+			else
+				name = "anonymous function"
+			end
+			local modifier = info.namewhat
+			if modifier and #modifier > 0 then
+				modifier = modifier.." "
+			else
+				modifier = ""
+			end
+			secondary_location = "in "..modifier..name
+		end
+
+		local subpieces = {
+			"\t",
+			primary_location,
+			": ",
+			secondary_location,
+		}
+
+		table.insert(pieces, table.concat(subpieces))
+	end
+
+	return table.concat(pieces, "\n")
+end
+
+---
 
 local kernel, TheMod
+
+local function ptraceback(message, lvl)
+	return TheMod:Say(traceback(message, (lvl or 1) + 1))
+end
+
 local function bootstrap(env, boot_params)
 	local package = boot_params.package
 
@@ -121,21 +249,23 @@ local function bootstrap(env, boot_params)
 		return t
 	end
 
-	local kernel_bootstrapper = boot_params.import(_PACKAGE .. 'init.kernel')(_G, basic_module)
+	local kernel_bootstrapper = boot_params.import(_PACKAGE .. 'boot.kernel')(_G, basic_module)
 	assert( type(kernel_bootstrapper) == "thread" )
 
-	do
-		local status
-		status, kernel = coroutine.resume(kernel_bootstrapper, boot_params)
-		assert( status, kernel )
+	local function resume_kernel(...)
+		local status, ret = coroutine.resume(kernel_bootstrapper, ...)
+		if not status then
+			local msg = tostring(ret).."\aWICKER KERNEL THREAD"
+			return fail(traceback(kernel_bootstrapper, msg), 0)
+		end
+		return ret
 	end
 
-	local binder
-	do
-		local status
-		status, binder = coroutine.resume(kernel_bootstrapper, _PACKAGE)
-		assert( status, binder )
-	end
+	kernel = resume_kernel(boot_params)
+	kernel.traceback = traceback
+	kernel.ptraceback = ptraceback
+
+	local binder = resume_kernel(_PACKAGE)
 
 	assert( coroutine.status(kernel_bootstrapper) == "dead" )
 
@@ -239,6 +369,8 @@ end)()
 
 
 return function(env, raw_boot_params)
+	if FAILED_RUNNING then return end
+
 	assert( type(raw_boot_params) == "table", "Boot parameters table expected." )
 
 	if kernel == nil then

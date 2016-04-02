@@ -12,3 +12,6 @@ probability = Probability
 
 SearchSpace = wickerrequire "math.searchspace"
 searchspace = SearchSpace
+
+Graph = wickerrequire "math.graph"
+graph = Graph

@@ -28,37 +28,169 @@ NormaliseIndices = NormalizeIndices
 NormalizeIndexes = NormalizeIndices
 NormaliseIndexes = NormalizeIndices
 
+local Iterator, StateManagedIterator
+	, IsIterator, IsStateManagedIterator = (function()
+	local getmetatable = assert( getmetatable )
+	local setmetatable = assert( setmetatable )
 
--- Builds an independent updater of iterator state, represented
--- by a table with at least the field var (the control variable value).
-function NewStateManager(state, var0)
-	state.var = var0
-	return function(var, ...)
+	local rawget, rawset = assert( rawget ), assert( rawset )
+
+	local Iterator = {}
+	Iterator.__index = Iterator
+
+	local StateManagedIterator = {}
+	StateManagedIterator.__index = StateManagedIterator
+
+	local function IsIterator(x)
+		local mt = getmetatable(x)
+		return mt == Iterator or mt == StateManagedIterator
+	end
+
+	local function IsBasicIterator(x)
+		local mt = getmetatable(x)
+		return mt == Iterator
+	end
+
+	local function IsStateManagedIterator(x)
+		local mt = getmetatable(x)
+		return mt == StateManagedIterator
+	end
+
+	local function make_pristine(f, s, var)
+		return {f, s, var}
+	end
+
+	local function make_stateful_pristine(g, var)
+		return {g, nil, var, var}
+	end
+
+	function Iterator.new(f, s, var)
+		if IsIterator(f) then
+			return f
+		else
+			return setmetatable(make_pristine(f, s, var), Iterator)
+		end
+	end
+	local basic_new = Iterator.new
+
+	function Iterator:bless(f, s, var)
+		return setmetatable(basic_new(f, s, var), getmetatable(self))
+	end
+
+	local function update_state(self, var, ...)
 		if var == nil then
-			state.var = var0
+			self[4] = self[3]
 			return
 		else
-			state.var = var
+			self[4] = var
 			return var, ...
 		end
 	end
+
+	function StateManagedIterator:__call(s)
+		return update_state(self, self[1](self[2], self[4]))
+	end
+
+	local function actual_StateManagedIterator_new(f, s, var)
+		if IsStateManagedIterator(f) then
+			return f
+		elseif IsBasicIterator(f) then
+			f, s, var = f:unpack()
+		end
+
+		local self
+
+		local function g()
+			return update_state(self, f(s, self[4]))
+		end
+
+		self = setmetatable(make_stateful_pristine(g, var), StateManagedIterator)
+
+		return self
+	end
+
+	local function finish_inheritance()
+		for k, v in pairs(Iterator) do
+			if not StateManagedIterator[v] then
+				StateManagedIterator[k] = v
+			end
+		end
+	end
+
+	function StateManagedIterator.new(...)
+		finish_inheritance()
+		StateManagedIterator.new = actual_StateManagedIterator_new
+		return StateManagedIterator.new(...)
+	end
+
+	function Iterator:unpack()
+		return self[1], self[2], self[3]
+	end
+
+	function StateManagedIterator:unpack()
+		return self[1]
+	end
+
+	function Iterator:__call(s, var)
+		if var == nil then
+			var = self[3]
+		end
+		if s == nil then
+			s = self[2]
+		end
+		return self[1](s, var)
+	end
+
+	function StateManagedIterator:__call(s)
+		return self[1]()
+	end
+
+	local simpleclass_meta = {
+		__call = function(class, f, s, var)
+			return class.new(f, s, var)
+		end,
+	}
+	
+	setmetatable(Iterator, simpleclass_meta)
+	setmetatable(StateManagedIterator, simpleclass_meta)
+
+	return Iterator, StateManagedIterator, IsIterator, IsStateManagedIterator
+end)()
+
+---
+
+metatable.setmetacall(_M, Iterator)
+
+---
+
+GetStateManaged = StateManagedIterator.new
+local GetStateManaged = GetStateManaged
+
+local function embedUnaryMethod(k)
+	local v = assert( _M[k] )
+	Iterator[k] = function(self, x)
+		return self:bless( v(x, self:unpack()) )
+	end
 end
 
-function GetStateManaged(f, s, var)
-	local state = {}
-	return Lambda.Compose( NewStateManager(state, var), function(s)
-		return f(s, state.var)
-	end ), s, var
-end
+---
 
 function RawCompose(g, f, s, var)
 	return Lambda.Compose(g, f), s, var
 end
+local RawCompose = RawCompose
+
+embedUnaryMethod "RawCompose"
 
 -- Do not compose with a function that may return nil if its first argument is not nil.
 -- If doing so, the iterator can't be reused (because it will not reset).
 function Compose(g, f, s, var)
 	return RawCompose( g, GetStateManaged(f, s, var) )
+end
+local Compose = Compose
+
+function Iterator:Compose(g)
+	return StateManagedIterator(self):RawCompose(g)
 end
 
 for _, pre in ipairs {'Raw', ''} do
@@ -82,6 +214,49 @@ function Filter(p, f, s, var)
 
 	return g, s, var
 end
+local Filter = Filter
+
+embedUnaryMethod "Filter"
+
+-- Like 'Filter', but for iterators returning up to 2 values only, thus
+-- eliminating temporary tables.
+function SimpleFilter(p, f, s, var)
+	local function g(s, var)
+		local k, v = f(s, var)
+		if k == nil then return end
+		if p(k, v) then
+			return k, v
+		else
+			-- Tail call
+			return g(s, rets[1])
+		end
+	end
+
+	return g, s, var
+end
+local SimpleFilter = SimpleFilter
+
+embedUnaryMethod "SimpleFilter"
+
+-- Skips nil-mapped values.
+function MapValues(map, f, s, var)
+	local function g(s, var)
+		local k, v = f(s, var)
+		if k == nil then return end
+		v = map(v, k)
+		if v ~= nil then
+			return k, v
+		else
+			-- Tail call
+			return g(s, rets[1])
+		end
+	end
+
+	return g, s, var
+end
+local MapValues = MapValues
+
+embedUnaryMethod "MapValues"
 
 -- Appends the second to the first.
 -- Semantically, it's like concatenation.

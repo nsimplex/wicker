@@ -5,7 +5,7 @@
 -----
 
 --[[
--- Called by init.lua after bootstrapping.
+-- Called by boot.lua after bootstrapping.
 --]]
 
 --[[

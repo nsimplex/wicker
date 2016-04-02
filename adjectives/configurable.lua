@@ -234,6 +234,17 @@ local loaded_files = {}
 
 local LoadConfiguration
 
+--[[
+local function protected_call(f ...)
+	local status, err = pcall(f, ...)
+
+	if not status then return error(err, 0) end
+end
+]]--
+
+local function protected_call(f, ...)
+	return f(...)
+end
 
 local function LoadConfigurationFunction(root, cfg, name)
 	local schema
@@ -292,11 +303,7 @@ local function LoadConfigurationFunction(root, cfg, name)
 	setmetatable(tmpenv, meta)
 	setfenv(cfg, tmpenv)
 
-	local status, runerr = pcall(cfg)
-	if not status then
-		return error(runerr, 0)
-	end
-
+	protected_call(cfg)
 
 	local bad_options = {}
 
@@ -365,9 +372,6 @@ local function LoadConfigurationFile(root, fname)
 	return LoadConfigurationFunction( root, cfg, fname )
 end
 
-local function put_error(msg)
-	return error(msg, 0)
-end
 
 LoadConfiguration = function(root, what, description)
 	local loader
@@ -380,9 +384,7 @@ LoadConfiguration = function(root, what, description)
 		loader = LoadConfigurationFile
 	end
 
-	local status, err = pcall(loader, root, what, description)
-
-	if not status then put_error(err) end
+	protected_call(loader, root, what, description)
 end
 
 ---

@@ -26,7 +26,7 @@ local _NAME = ...
 --[[
 -- Function which defines the body of the bootstrapping coroutine.
 --
--- The counterpart to it is the init.lua file, which manages its
+-- The counterpart to it is the boot.lua file, which manages its
 -- stepwise execution.
 --]]
 local function kernel_boot_coroutine_body(_G, module)
