@@ -305,6 +305,19 @@ local function include_corelib(kernel)
 
 	---
 	
+	local function IsCallable(x)
+		if type(x) == "function" then
+			return true
+		end
+		local mt = getmetatable(x)
+		return mt and mt.__call
+	end
+	local IsFunctional = IsCallable
+	_M.IsCallable = IsCallable
+	_M.IsFunctional = IsFunctional
+
+	---
+
 	local function listify_higherorder(F)
 		return function(f, ...)
 			local function g(...)
@@ -1039,27 +1052,27 @@ local function include_introspectionlib(kernel)
 
 	---
 
-	local function is_vacuously_host()
+	local is_vacuously_host = memoize_0ary(function()
 		return IsWorldgen() or not IsMultiplayer()
-	end
+	end)
 
-	IsHost = memoize_0ary(function()
+	IsHost = function()
 		if is_vacuously_host() then
 			return true
 		else
 			return _G.TheNet:GetIsServer() and true or false
 		end
-	end)
+	end
 	local IsHost = IsHost
 	IsServer = IsHost
 
-	IsMasterSimulation = memoize_0ary(function()
+	IsMasterSimulation = function()
 		if is_vacuously_host() then
 			return true
 		else
 			return _G.TheNet:GetIsMasterSimulation() and true or false
 		end
-	end)
+	end
 	IsMasterSim = IsMasterSimulation
 
 	IfHost = immutable_lambdaif(IsHost)
@@ -1068,13 +1081,13 @@ local function include_introspectionlib(kernel)
 	IfMasterSimulation = immutable_lambdaif(IsMasterSimulation)
 	IfMasterSim = IfMasterSimulation
 
-	IsClient = memoize_0ary(function()
+	IsClient = function()
 		if is_vacuously_host() then
 			return false
 		else
 			return _G.TheNet:GetIsClient() and true or false
 		end
-	end)
+	end
 
 	IfClient = immutable_lambdaif(IsClient)
 
@@ -1299,6 +1312,8 @@ local function include_metatablelib(kernel)
 
 	local debug = get.debug
 
+	local IsFunctional = get.IsFunctional
+
 	---
 	
 	local METATABLELIB_ENV = make_inner_env(kernel)
@@ -1384,6 +1399,7 @@ local function include_metatablelib(kernel)
 		end
 		return meta
 	end
+	_M.require_metatable = require_metatable
 
 	-- Normalizes a metamethod name, prepending a "__" if necessary.
 	local normalize_metamethod_name = (function()
@@ -1606,14 +1622,20 @@ local function include_metatablelib(kernel)
 				include(chain, fn, last)
 			else
 				local oldfn = rawget(meta, metakey)
-				if oldfn == nil then
-					oldfn = default_metamethods[metakey]
-				end
-				if oldfn ~= nil then
-					rawset(meta, metachainkey, include({oldfn, nil}, fn, last))
-					rawset(meta, metakey, accessor)
+				if type(fn) == "table" and type(oldfn) == "table" then
+					for k, v in pairs(fn) do
+						oldfn[k] = v
+					end
 				else
-					rawset(meta, metakey, fn)
+					if oldfn == nil then
+						oldfn = default_metamethods[metakey]
+					end
+					if oldfn ~= nil then
+						rawset(meta, metachainkey, include({oldfn, nil}, fn, last))
+						rawset(meta, metakey, accessor)
+					else
+						rawset(meta, metakey, fn)
+					end
 				end
 			end
 
@@ -1925,6 +1947,7 @@ local function include_auxlib(kernel)
 		local next = assert( _G.next )
 		local type = assert( _G.type )
 		local sbyte = assert( _G.string.byte )
+		local sfind = assert( _G.string.find )
 		local us = sbyte("_", 1)
 
 		function IsPrivateString(x)
@@ -1932,50 +1955,43 @@ local function include_auxlib(kernel)
 		end
 		local IsPrivateString = IsPrivateString
 
+		function IsNotPrivateString(x)
+			return type(x) ~= "string" or sbyte(x, 1) ~= us
+		end
+		local IsNotPrivateString = IsNotPrivateString
+
 		function IsPublicString(x)
-			return type(x) == "string" and sbyte(x, 1) ~= "us"
+			return type(x) == "string" and sbyte(x, 1) ~= us
 		end
 		local IsPublicString = IsPublicString
 
-		local function pub_f(s, k)
-			local _f, _s = s[1], s[2]
-			local v = nil
-			repeat
-				k, v = _f(_s, k)
-			until k == nil or IsPublicString(k)
-			return k, v
+		local function new_conditional_iterate(p)
+			return function(f, s, var)
+				local function g(fs, k)
+					local v = nil
+					repeat
+						k, v = f(fs, k)
+					until k == nil or p(k, v)
+					return k, v
+				end
+
+				return g, s, var
+			end
+		end
+		NewConditionalIterate = new_conditional_iterate
+
+		public_iterate = new_conditional_iterate(IsPublicString)
+		private_iterate = new_conditional_iterate(IsPrivateString)
+		nonprivate_iterate = new_conditional_iterate(IsNotPrivateString)
+
+		local function is_string_matching(patt)
+			assert(type(patt) == "string")
+			return function(k)
+				return type(k) == "string" and sfind(k, patt)
+			end
 		end
 
-		local function nonpriv_f(s, k)
-			local _f, _s = s[1], s[2]
-			local v = nil
-			repeat
-				k, v = _f(_s, k)
-			until not IsPrivateString(k)
-			return k, v
-		end
-
-		local function priv_f(s, k)
-			local _f, _s = s[1], s[2]
-			local v = nil
-			repeat
-				k, v = _f(_s, k)
-			until k == nil or IsPrivateString(k)
-			return k, v
-		end
-
-
-		function public_iterate(f, s, var)
-			return pub_f, {f, s}, var
-		end
-
-		function nonprivate_iterate(f, s, var)
-			return nonpriv_f, {f, s}, var
-		end
-
-		function private_iterate(f, s, var)
-			return priv_f, {f, s}, var
-		end
+		matched_iterate = compose(new_conditional_iterate, is_string_matching)
 	end
 
 	local public_iterate, private_iterate = public_iterate, private_iterate
@@ -1992,6 +2008,14 @@ local function include_auxlib(kernel)
 
 	nonprivate_pairs = lazy_compose(nonprivate_iterate, "pairs")
 	nonprivatepairs = nonprivate_pairs
+
+	matched_pairs = function(patt)
+		local do_iterate = matched_iterate(patt)
+		return function(t)
+			return do_iterate(pairs(t))
+		end
+	end
+	matchedpairs = matched_pairs
 	
 	function InjectNonPrivatesIntoTableIf(p, t, f, s, var)
 		for k, v in nonprivate_iterate(f, s, var) do
@@ -2015,6 +2039,7 @@ local function include_auxlib(kernel)
 	
 	_M.get = _G.getmetatable
 	_M.set = _G.setmetatable
+	_M.require = require_metatable
 
 	---
 	

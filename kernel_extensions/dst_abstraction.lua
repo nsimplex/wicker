@@ -84,6 +84,11 @@ else
 	end)
 
 	AddLocalPlayerPostActivation = function(fn)
+		do
+			-- TODO: fix this
+			-- FIXME: please
+			return error "This is broken! AddSimPostInit no longer passes a player entity!"
+		end
 		if doAddLocalPlayerPostActivation ~= nil then
 			return doAddLocalPlayerPostActivation(fn)
 		else

@@ -43,14 +43,7 @@ local setfenv = setfenv
 --module(...)
 local Lambda = _M
 
-function IsFunctional(x)
-	if type(x) == "function" then
-		return true
-	else
-		local mt = getmetatable(x)
-		return mt and mt.__call
-	end
-end
+IsFunctional = assert( IsFunctional )
 local IsFunctional = IsFunctional
 
 function Identity(...)
@@ -140,6 +133,15 @@ function Compose(f, g)
 end
 local Compose = Compose
 compose = Compose
+
+-- Fixed point operator.
+local function fix(f)
+	return function(...)
+		return f (fix(f)) (...)
+	end
+end
+_M.fix = fix
+_M.Fix = fix
 
 ---
 -- Cartesian product of two functions of the same domain.

@@ -90,7 +90,10 @@ if IsDST() then
 		end
 	end
 
-	TheMod:AddPrefabPostInit("world_network", function(inst)
+	TheMod:AddPrefabPostInitAny(function(inst)
+		local TheWorld = assert( _G.TheWorld )
+		if inst ~= TheWorld.net then return end
+
 		if #mod_rpcs == 0 then
 			TheMod:Say("Mod '", modinfo.name, "' hasn't added custom RPCs, skipping hook.")
 			return

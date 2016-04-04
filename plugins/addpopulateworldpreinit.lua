@@ -26,6 +26,10 @@ local preinits = FunctionQueue()
 
 local patched_populate = false
 TheMod:AddGameLogicPostLoad(function()
+	-- TODO: remove this file
+	-- FIXME: remove this file
+	error "This is broken in DST!"
+
 	if patched_populate then return end
 	assert( VarExists "PopulateWorld" )
 

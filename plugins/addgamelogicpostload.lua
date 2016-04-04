@@ -25,15 +25,20 @@ local postloads = FunctionQueue()
 local did_run = false
 TheMod:AddGlobalClassPostConstruct("saveindex", "SaveIndex", function()
 	if did_run then return end
-	if VarExists("PopulateWorld") then
+	if _G.package.loaded.gamelogic then
 		did_run = true
 		postloads()
+		postloads = nil
 	end
 end)
 
 
 local function AddPostLoad(fn)
-	table.insert(postloads, fn)
+	if did_run then
+		fn()
+	else
+		table.insert(postloads, fn)
+	end
 end
 
 

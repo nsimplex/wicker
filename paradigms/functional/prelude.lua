@@ -88,9 +88,9 @@ local TypeClass = (function()
 			:format(tostring(k), tostring(instancename), tostring(tcname))
 	end
 
-	function err_msgs.INCOMPLETE_MINIMAL(k, tcname)
-		return ("Minimal implementation of typeclass '%s' does not provide required '%s'.")
-			:format(tostring(tcname), tostring(k))
+	function err_msgs.INCOMPLETE_MINIMAL(tcname)
+		return ("Minimal implementation of typeclass '%s' does not provide all required methods.")
+			:format(tostring(tcname))
 	end
 
 	function err_msgs.NO_INSTANCE(instancename, tcname)
@@ -113,6 +113,50 @@ local TypeClass = (function()
 			end
 		end,
 	})
+
+	local function arglist_tostring(...)
+		local args = {...}
+		local n = select("#", ...)
+		for i = 1, n do
+			args[i] = tostring(args[i])
+		end
+		return table.concat(args, ", ")
+	end
+
+	local function generic_check_spec(masterself, slaveself, spec, iname, tname, itergen)
+		-- print("generic_check_spec("..arglist_tostring(masterself, slaveself, spec, iname, tname, itergen)..")")
+
+		itergen = itergen or publicpairs
+
+		local errors = nil
+
+		for k, default in itergen(spec) do
+			if not slaveself[k] then
+				if default then
+					if not errors then
+						if type(default) == "table" then
+							slaveself[k] = default[1](masterself)
+						else
+							slaveself[k] = function(...)
+								return default(masterself, ...)
+							end
+						end
+					end
+				else
+					errors = append_array(errors,
+						{err_msgs.MUSTIMPLEMENT_ERROR_FULL(k, iname, tname)})
+				end
+			end
+		end
+
+		return errors
+	end
+
+	local function check_spec(self, ...)
+		return generic_check_spec(self, self, ...)
+	end
+
+	local metaitergen = matchedpairs "^__"
 
 	return function(...)
 		local constraints = {...}
@@ -140,12 +184,21 @@ local TypeClass = (function()
 				minimal = minimal,
 			}
 
+			local function extend_metatable(self)
+				local metaspec = spec.__meta
+				if not metaspec then return end
+
+				local meta = require_metatable(self)
+
+				local mname = "getmetatable("..tostring(self.name)..")"
+
+				return generic_check_spec(self, meta, metaspec, mname, tname, metaitergen)
+			end
+
 			local instance_set = setmetatable({}, {__mode = "k"})
 
 			local function falsify_instance(self)
 				local pairs, ipairs = pairs, ipairs
-
-				local errors = nil
 
 				if instance_set[self] then
 					return
@@ -160,36 +213,35 @@ local TypeClass = (function()
 				end
 
 				for _, c in ipairs(TC.constraints) do
-					errors = append_array(errors, c.falsify_instance(self))
-				end
-				for k, default in pairs(spec) do
-					if not self[k] then
-						if default then
-							if type(default) == "table" then
-								self[k] = default[1](self)
-							else
-								self[k] = function(...)
-									return default(self, ...)
-								end
-							end
-						else
-							if not minimal then
-								errors = append_array(errors,
-									{err_msgs.MUSTIMPLEMENT_ERROR_FULL(k, self.name, tname)})
-							else
-								-- This is a logic error on the typeclass
-								-- specification, so we raise it now.
-								return error(err_msgs.INCOMPLETE_MINIMAL(k, tname), 0)
-							end
-						end
+					local errors = c.falsify_instance(self)
+					if errors then
+						return errors
 					end
 				end
 
-				if not errors then
-					instance_set[self] = true
+				local errors
+
+				errors = check_spec(self, spec, self.name, tname)
+				if errors then
+					if minimal then
+						local err = err_msgs.INCOMPLETE_MINIMAL(tname)
+						err = table.concat(append_array({err}, errors), "\n")
+						-- This is a logic error on the typeclass
+						-- specification, so we raise it now.
+						return error(err, 0)
+					end
+					return errors
 				end
 
-				return errors
+				errors = extend_metatable(self)
+				if errors then
+					return errors
+				end
+
+				assert(not errors)
+				instance_set[self] = true
+
+				return nil
 			end
 			TC.falsify_instance = falsify_instance
 
@@ -232,8 +284,37 @@ local _ = MustImplement
 ---
 
 Functor = TypeClass() "Functor" {
+	---
+	-- MINIMAL: fmap | varfmap
+	--
+	MINIMAL = _"fmap" + _"varfmap",
+
+
 	-- fmap :: (a -> b) -> (f a -> f b)
-	fmap = false,
+	fmap = {function(self)
+		return self.varfmap
+	end},
+	-- Version of fmap for variadic functions.
+	-- varfmap :: ((a, ...) -> b) -> (f a, ...) -> f b
+	varfmap = function(self, f)
+		local fmap = self.fmap
+		return function(fa, ...)
+			local extra = {...}
+			local function g(a)
+				return f(a, unpack(extra))
+			end
+			return fmap(g)(fa)
+		end
+	end,
+
+
+	__meta = {
+		__pow = function(self, f)
+			return self.fmap(f)
+		end,
+	},
+
+
 	-- apply :: (f a, b) -> f b
 	apply = function(self, fa, b)
 		return self.fmap(const(b))(fa)
@@ -251,6 +332,19 @@ Functor = TypeClass() "Functor" {
 	end},
 }
 local Functor = Functor
+
+---
+
+Monoid = TypeClass() "Monoid" {
+	-- mempty :: a
+	mempty = false,
+	-- mappend :: (a, a) -> a
+	mappend = false,
+
+	__concat = {function(self)
+		return self.mappend
+	end},
+}
 
 ---
 
@@ -317,6 +411,20 @@ Array = Functor.instance {
 			return B
 		end
 	end,
+	varfmap = function(f)
+		return function(A, ...)
+			local B = {}
+			local j = 0
+			for i, v in ipairs(A) do
+				v = f(v, ...)
+				if v ~= nil then
+					j = j + 1
+					B[j] = v
+				end
+			end
+			return B
+		end
+	end,
 	apply = function(A, x)
 		local B = {}
 		for i = 1, #A do
@@ -338,6 +446,16 @@ Table = Functor.instance {
 			return u
 		end
 	end,
+	varfmap = function(f)
+		return function(t, ...)
+			local u = {}
+			for k, v in pairs(t) do
+				u[k] = f(v, ...)
+			end
+			return u
+		end
+	end,
+
 	apply = function(t, x)
 		local u = {}
 		for k in pairs(t) do
@@ -356,6 +474,23 @@ Tuple = {
 	fmap = function(f)
 		return function(X)
 			return { f(unpack(X)) }
+		end
+	end,
+	varfmap = function(f)
+		return function(X, ...)
+			local Y = {}
+			local nX = #X
+			local extra = {...}
+			local nextra = #extra
+
+			for i = 1, nX do
+				Y[i] = X[i]
+			end
+			for i = 1, nextra do
+				Y[nX + i] = extra[i]
+			end
+
+			return f(unpack(Y))
 		end
 	end,
 

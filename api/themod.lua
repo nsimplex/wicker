@@ -190,7 +190,6 @@ local function get_hook_spec(self, id)
 end
 
 local plugin_arg_maps = {
-	AddSimPostInit = Lambda.Nil,
 }
 
 local function EmbedPlugin(self, specs_table, wrapper, full_name, id, fn)
@@ -315,6 +314,8 @@ function Mod:SlurpEnvironment(env, overwrite)
 				else
 					self:EmbedAdder(stem, v)
 				end
+			elseif self[k] == nil then
+				self:EmbedFunction(k, v)
 			end
 		end
 	end

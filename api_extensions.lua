@@ -25,62 +25,37 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
---[[
-local submodules = {
-}
-]]--
-
-local function MakeLateAddPrefabPostInit()
-	local FunctionQueue = wickerrequire "gadgets.functionqueue"
-
-	local queue_set = {}
-
-	_G.SpawnPrefab = (function()
-		local SpawnPrefab = assert( _G.SpawnPrefab )
-
-		return function(prefab)
-			local inst = SpawnPrefab(prefab)
-			
-			local queue = queue_set[prefab]
-			if queue ~= nil then
-				queue(inst)
-			end
-
-			return inst
-		end
-	end)()
-
-	return function(prefab, postinitfn)
-		local queue = queue_set[prefab]
-		
-		if queue == nil then
-			queue = FunctionQueue()
-			queue_set[prefab] = queue
-		end
-
-		table.insert(queue, postinitfn)
-	end
-end
-
 local function doextend()
+	local my_postinits = {}
+
+	TheMod:AddPrefabPostInitAny(function(inst)
+		local prefab = inst.prefab
+		if prefab then
+			local postinits = my_postinits[prefab]
+			if postinits then
+				postinits(inst)
+			end
+		end
+	end)
 	local basic_AddPrefabPostInit = assert( modenv.AddPrefabPostInit )
 	local late_AddPrefabPostInit = nil
 
 	local function AddPrefabPostInit(prefab, fn)
-		if TheMod:IsRunning() then
-			return basic_AddPrefabPostInit(prefab, fn)
-		else
-			if late_AddPrefabPostInit == nil then
-				late_AddPrefabPostInit = assert( MakeLateAddPrefabPostInit() )
-			end
-			return late_AddPrefabPostInit(prefab, fn)
+		local postinits = my_postinits[prefab]
+		if not postinits then
+			postinits = FunctionQueue()
 		end
+		table.insert(postinits, fn)
+		return fn
 	end
 
+	TheMod:EmbedHook("GenericPrefabPostInit", AddPrefabPostInit)
 	TheMod:EmbedHook("PrefabPostInit", AddPrefabPostInit)
 end
 
 return function()
-	doextend()
-	doextend = function() end
+	if not IsWorldgen() then
+		doextend()
+		doextend = function() end
+	end
 end

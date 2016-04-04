@@ -16,7 +16,9 @@ local logic_implication = NewLogicAssertion(Logic.Implies, "implication")
 logic_equivalence(IsServer(), IsMasterSimulation(), "server <-> master simulation")
 
 -- This doesn't hold in the main menu.
-TheMod:AddPrefabPostInit("world", function()
-	logic_implication(IsDedicated(), IsServer(), "dedicated -> server")
-	logic_equivalence(IsServer(), not IsClient(), "server <-> not client")
-end)
+if not IsWorldgen() then
+	TheMod:AddPrefabPostInit("world", function()
+		logic_implication(IsDedicated(), IsServer(), "dedicated -> server")
+		logic_equivalence(IsServer(), not IsClient(), "server <-> not client")
+	end)
+end
