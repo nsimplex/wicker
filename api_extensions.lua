@@ -26,6 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]--
 
 local function doextend()
+	local FunctionQueue = wickerrequire "gadgets.functionqueue"
+
 	local my_postinits = {}
 
 	TheMod:AddPrefabPostInitAny(function(inst)
