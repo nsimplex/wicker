@@ -29,6 +29,14 @@ local getmetatable = getmetatable
 
 BindWickerModule 'lib.logic'
 
+local _M = _M
+
+---
+
+AddCheckersProvider(function(testname)
+    return _M["Is"..testname]
+end)
+
 
 for _, k in ipairs{
 		"Less", "Greater",
