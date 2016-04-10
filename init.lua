@@ -48,12 +48,15 @@ local string_gsub = assert( string.gsub )
 local tostring = assert( _G.tostring )
 local table_concat = assert( _G.table.concat )
 
+local getmetatable = assert( _G.getmetatable )
+local setmetatable = assert( _G.setmetatable )
+
 ---
 
 -- | 
 -- This holds the wicker kernel, the core environment inherited by every other
 -- wicker module environment.
-local _K = {}
+local _K = { _G = _G }
 
 local kernel = _K
 -- I'm using 'kernel' just to avoid spelling 'KKK'.
@@ -100,6 +103,27 @@ _K.IS_LUAJIT = (_G.rawget(_G, "jit") ~= nil)
 --  Basic utilities
 --------------------------------------------------------------------------------
 
+-- This is just to allow for distinguishing an uuid from an ordinary table.
+local UUID_META = {}
+_K.UUID_META = UUID_META
+
+-- | Returns a universally unique identifier for the current Lua State.
+local function uuid()
+    return setmetatable({}, UUID_META)
+end
+_K.uuid = uuid
+
+local FAILED_RUNNING = false
+local function _panic(message, level)
+	level = level or 1
+	if level > 0 then
+		level = level + 1
+	end
+	FAILED_RUNNING = true
+	error(tostring(message), level)
+end
+_K._panic = _panic
+
 -- | Returns a function that when called triggers an error.
 local function Error(...)
     local args = {...}
@@ -108,16 +132,35 @@ local function Error(...)
         for i = 1, #args do
             sargs[i] = tostring(args[i])
         end
-        return error(table_concat(sargs))
+        return _K.error(table_concat(sargs))
     end
 end
 _K.Error = Error
 
--- | Returns a universally unique identifier for the current Lua State.
-local function uuid()
-    return {}
-end
-_K.uuid = uuid
+local VarExists = (function()
+    local rawget = assert( _G.rawget )
+    local pcall = assert( _G.pcall )
+
+    local function indextable(t, k)
+        return t[k]
+    end
+
+    local function get_global(k)
+        return rawget(_G, k)
+    end
+
+    return function(name, env)
+        if env == nil or env == _G then
+            return get_global(name) ~= nil
+        end
+
+        local status, val = pcall(indextable, env, name)
+
+        return status and val ~= nil
+    end
+end)()
+_K.VarExists = VarExists
+
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -227,11 +270,13 @@ local split_module_path = (function()
     end
 end)()
 
+fs.split_module_path = split_module_path
+
 -- See Data.Bifunctor (Haskell).
 local function splitter_bimap(splitter)
     local function first(path)
         local dname, fname = splitter(path)
-        return fname
+        return dname
     end
 
     local function second(path)
@@ -244,12 +289,8 @@ end
 
 fs.dirname, fs.basename = splitter_bimap(split_path)
 
--- Splits a module path (as in an argument to require) into its package and
--- module names.
-local split_module_path = split_path
-fs.split_module_path = split_module_path
-
 fs.pkgname, fs.modulename = splitter_bimap(split_module_path)
+fs.pkgname = split_module_path
 
 -- Replaces directory separators with the given string.
 local function normalize_path_with(repl)
@@ -479,7 +520,7 @@ do
         -- We assume parent_f has a dofile-like interface.
         parent_f = parent_f or assert(modimport or _G.dofile)
 
-        parent_f( catpath(WICKER_ROOT, "boot", "requirer.lua" ) )
+        parent_f( catpath(WICKER_ROOT, "init", "requirer.lua" ) )
 
         local_Requirer = assert( Requirer )
     else
@@ -491,7 +532,7 @@ do
             mypkg = module_path
         end
 
-        local_Requirer = assert( parent_f(mypkg..".boot.requirer") )
+        local_Requirer = assert( parent_f(mypkg..".init.requirer") )
     end
 end
 local Requirer = assert( local_Requirer )
@@ -503,6 +544,11 @@ Requirer.SetKernel( _K )
 
 local krequire = Requirer( _K, dir_name, "kernel module" )
 _K.krequire = krequire
+
+krequire.SetPackageLoaded("init", _K)
+krequire.SetPackageLoaded(".", _K)
+krequire.SetPackageLoaded("", _K)
+
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -577,26 +623,95 @@ end)()
 
 ---
 
-bless_super_basic_module(_K, krequire.package, ".")
+assert(_K._G == _G)
+bless_super_basic_module(_K, krequire.package, "init.kernel")
+assert(_K._G == _G)
 
 ---
 
 
-krequire "boot.dataops"
-krequire "boot.debug"
+krequire "init.timing"
+assert(_K._G == _G)
+
+local dataops = krequire "init.dataops"
+assert(_K._G == _G)
+
+local kdebug = krequire "init.debug"
+assert(_K._G == _G)
 
 assert(kdebug.error == _K.error)
 error = assert(_K.error)
 
-krequire "boot.checks"
-krequire "boot.stdlib"
+krequire "init.checks"
+assert(_K._G == _G)
 
-krequire "boot.kernel"
+local stdlib = krequire "init.stdlib"
+assert(_K._G == _G)
+
+krequire "init.importers"
+assert(_K._G == _G)
+
+local kernel_thread = krequire.force "init.kernel"
+assert(type(kernel_thread) == "thread")
+
+local function resume_thread(thread, id, ...)
+    local status, ret = coroutine.resume(thread, ...)
+    if not status then
+        local msg = tostring(ret).."\a"..id.." THREAD"
+        return _panic(kdebug.traceback(thread, msg), 0)
+    end
+    return ret
+end
+
+local function resume_kernel(...)
+    return resume_thread(kernel_thread, "WICKER KERNEL", ...)
+end
+
+local function resume_profile(profile, ...)
+    local profile_thread = krequire("profile_d."..profile)
+    assert(type(profile_thread) == "thread")
+
+    local Profile = profile:upper()
+
+    return resume_thread(profile_thread, "WICKER PROFILE "..Profile, ...)
+end
+
+local function start_profile(profile, ...)
+    resume_profile(profile, resume_kernel)
+    return resume_profile(profile, ...)
+end
 
 -- local wickerrequire = krequire.fork(nil, "wicker module")
 -- _K.wickerrequire = wickerrequire
 
+local function detect_profile()
+    local rawget = assert( _G.rawget )
+
+    if rawget(_G, "kleifileexists") then
+        return "dontstarve"
+    else
+        return "pure"
+    end
+end
+
+local function do_start_wicker(profile, ...)
+    if type(profile) ~= "string" then
+        return start_profile(detect_profile(), profile, ...)
+    else
+        return function(...)
+            return start_profile(profile, ...)
+        end
+    end
+end
+
+if module_path == nil then
+    start_wicker = do_start_wicker
+end
+
+do return start_wicker end
+
 ---------------------------------------------------------------------------------
+
 
 do return end
 

@@ -316,14 +316,14 @@ Functor = TypeClass() "Functor" {
 
 
 	-- apply :: (f a, b) -> f b
-	apply = function(self, fa, b)
-		return self.fmap(const(b))(fa)
+	apply = function(self, fa, ...)
+		return self.fmap(const(...))(fa)
 	end,
 	-- curried_apply :: f a -> b -> f b
 	curried_apply = function(self, fa)
 		local apply = self.apply
-		return function(b)
-			return apply(fa, b)
+		return function(...)
+			return apply(fa, ...)
 		end
 	end,
 	-- void :: f a -> f ()
@@ -351,7 +351,7 @@ Monoid = TypeClass() "Monoid" {
 Monad = TypeClass(Functor) "Monad" {
 	-- pure :: a -> m a
 	pure = false,
-	-- bind :: (a -> m b) -> m a -> m b
+	-- bind :: ((a -> m b), m a) -> m b
 	bind = false,
 }
 local Monad = Monad
@@ -362,7 +362,7 @@ function Monad:curried_bind(f)
 	end
 end
 
--- sequence :: m a -> m b -> m b
+-- sequence :: (m a, m b) -> m b
 function Monad:sequence(ma, mb)
 	return self.bind(const(mb), ma)
 end
@@ -549,3 +549,35 @@ Monad.instance		(Unit)
 
 ---
 
+-- |
+-- The type 'Hom a' corresponds to all functions of the form '(...) -> a',
+-- that is, all variadic functions with values in a.
+local Hom = {
+    name = "Hom",
+
+    fmap = curry(compose)
+    void = bind(compose, Nil)
+}
+
+Hom.pure = const
+Hom.bind = compose
+Hom.sequence = function(ma, mb)
+    return function(...)
+        ma(...)
+        return mb(...)
+    end
+end
+
+Hom.mempty = Nil
+Hom.mappend = Hom.sequence
+
+Functor.instance    (Hom)
+Monad.instance      (Hom)
+Monoid.instance     (Hom)
+
+---
+
+-- |
+-- We identify 'IO a' with 'Hom a', viewing it as the type of variadic Lua
+-- functions possibly having some side effect and having values in 'a'.
+IO = Hom

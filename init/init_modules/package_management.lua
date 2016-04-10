@@ -1,19 +1,11 @@
---[[
-Copyright (C) 2013  simplex
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-]]--
+--------------------------------------------------------------------------------
+-- | 
+-- Module      : wicker.init.init_modules.package.management
+-- Note        : 
+-- 
+-- Parametric tools for environment based package loading and importing.
+-- 
+--------------------------------------------------------------------------------
 
 
 return function(importer_metadata)
@@ -113,12 +105,7 @@ return function(importer_metadata)
 			return M
 		end
 	end
-	
-	for action, prototype in pairs(advanced_prototypes) do
-		for importer, info in pairs(importer_metadata) do
-			_M[action .. info.category] = prototype(importer)
-		end
-	end
+
 
 	_M.BindGlobal = (function()
 		local assert = assert
@@ -138,4 +125,9 @@ return function(importer_metadata)
 			AttachMetaIndexTo(outer_env, global_get, true)
 		end
 	end)()
-end
+
+	for action, prototype in pairs(advanced_prototypes) do
+		for importer, info in pairs(importer_metadata) do
+			_M[action .. info.category] = prototype(importer)
+		end
+	end

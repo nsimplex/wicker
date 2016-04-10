@@ -6,3 +6,11 @@ end
 
 -- require "."
 dofile "init.lua"
+
+start_wicker {
+    id = "wickertest",
+
+	usercode_root = ".",
+
+	debug = true,
+}

@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- | 
--- Module      : wicker.boot.requirer
+-- Module      : wicker.init.requirer
 -- Note        : 
 -- 
 -- This module provides require-like functionality under a specified environment.
@@ -101,9 +101,10 @@ local function default_searcher(self, name, env)
     for pathspec in self.package.path:gmatch("[^;]+") do
         local path = pathspec:gsub("%?", name, 1)
         if file_exists(path) then
-            local fn = loadfile(path, nil, expand_env(env, name, self))
+            local fn, err = loadfile(path, nil, expand_env(env, name, self))
             if type(fn) ~= "function" then
-                return error(tostring(fn or "Unknown error"), 3)
+                err = tostring(err or fn or "Unknown error")
+                return error(err, 3)
             end
             return fn
         else
@@ -144,6 +145,14 @@ end
 --  searchers.
 --------------------------------------------------------------------------------
 
+local function set_package_loaded(package, name, val)
+    for namevar in _K.fs.module_path_variants(name) do
+        package.loaded[namevar] = val
+    end
+    assert( package.loaded[name] == val or val ~= val )
+    return val
+end
+
 local function custom_require(package, mod_desc, name, ...)
     local ret = package.loaded[name]
     if not ret then
@@ -167,11 +176,7 @@ local function custom_require(package, mod_desc, name, ...)
                         ret = true
                     end
 				end
-                for namevar in _K.fs.module_path_variants(name) do
-                    package.loaded[namevar] = ret
-                end
-                assert( package.loaded[name] == ret or ret ~= ret )
-                return ret
+                return set_package_loaded(package, name, ret)
 			elseif type(fn) == "string" then
                 nfails = nfails + 1
                 fail_pieces[nfails] = fn
@@ -288,9 +293,24 @@ local function wrapPackageTable(pristine_package, env, code_root, mod_desc)
 
     self.require = self
 
+    function self.force_require(name, ...)
+        self.package.loaded[name] = nil
+        return self.require(name, ...)
+    end
+    self.force = self.force_require
+
     self.module_name_map = id1
 
+    function self.package_loaded(name)
+        return self.package.loaded[self.module_name_map(name)]
+    end
+
     ---
+
+    local function setPackageLoaded(name, val)
+        return set_package_loaded(self.package, name, val)
+    end
+    self.SetPackageLoaded = setPackageLoaded
 
     local function setCodeRoot(r)
         assert(type(r) == "string")
@@ -333,7 +353,7 @@ local function wrapPackageTable(pristine_package, env, code_root, mod_desc)
         local child =
             wrapPackageTable(self.package, env, code_root, child_mod_desc)
         if child_prefix then
-            child.appendPrefix(child_prefix)
+            child.AppendPrefix(child_prefix)
         end
         return child
     end
