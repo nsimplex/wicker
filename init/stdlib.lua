@@ -28,6 +28,8 @@ krequire "init.dataops"
 local kdebug = krequire "init.debug"
 assert(type(kdebug) == "table")
 
+krequire "init.checks"
+
 ---
 
 local std = {}
@@ -153,6 +155,7 @@ local function std_pairs(t)
             return mynext, t, nil
         end
     end
+    checks("table")
     return _G_pairs(t)
 end
 std.pairs = std_pairs

@@ -97,6 +97,8 @@ return coroutine.create(function(boot_params)
         , "'..."
         )
 
+    local kernelboot_dt = NewFormattedTimeMeasurer()
+
 	-----------------------------------------------------------------
 
 	local function NewModProber(root, desc, onload)
@@ -120,9 +122,7 @@ return coroutine.create(function(boot_params)
 	end
     _K.NewModProber = NewModProber
 
-
-    local kernelboot_dt = NewFormattedTimeMeasurer()
-
+    -- Module prober for the booting process.
     local modprobe_init = NewModProber(
         _PACKAGE..".init_modules."
         , "init module"
@@ -159,35 +159,30 @@ return coroutine.create(function(boot_params)
 
 	modprobe_init("layering")
 	assert( GetEnvironmentLayer )
-	assert( GetOuterEnvironment )
+	assert( _GetOuterEnvironment )
 
     modprobe_init "package_management"
-    modprobe_init "importers"
+    assert( pacman )
 
-    --[[
-	local InjectNonPrivatesIntoTable = InjectNonPrivatesIntoTable
-    local basic_importer_metadata = modprobe_init("basic_importers")
-    _K.basic_importer_metadata = basic_importer_metadata
-	modprobe_init("advanced_importers")
-    _K.basic_importer_metadata = nil
-    ]]--
-
-	local BindTheKernel = BindTheKernel
-	assert( BindTheKernel )
-	InjectTheKernel = nil
-	BecomeTheKernel = nil
+	local BindTheKernel = assert( BindTheKernel )
+	assert( not InjectTheKernel )
+	assert( not BecomeTheKernel )
 	assert( BindTable )
 	assert( InjectTable )
 	assert( BecomeTable )
+    assert( BindTheUser )
 	assert( BindTheMod )
 	InjectTheMod = nil
+    pacman.InjectTheMod = nil
 	assert( BecomeTheMod )
+
+    modprobe_init "standard_requirers"
 	
 	modprobe_init("bindings", BindTheKernel)
 
 	modprobe_init("extra_utilities")
 
-	modprobe_init("loaders", boot_params, wicker_stem, module)
+	modprobe_init("package_searching_reroute", boot_params, wicker_stem, module)
 
 	modprobe_init("hooks")
 	
@@ -200,7 +195,7 @@ return coroutine.create(function(boot_params)
 
 
 	announce "Overriding package value."
-	boot_params.package.loaded[_NAME] = BindTheKernel
+	krequire.package.loaded[_NAME] = BindTheKernel
 
 	announce("Booted (", kernelboot_dt(), ").")
     DONE_BOOTING = true

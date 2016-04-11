@@ -32,13 +32,6 @@ local getfenv = assert(getfenv)
 --  The main function: GetEnvironmentLayer
 --------------------------------------------------------------------------------
 
-print "SEE ME"
-print(_K)
-print(_G)
-
-print(_K._G)
-print(_G._G)
-
 -- The code would be absolutely broken if this trivial claim were false.
 assert( _K ~= _G )
 

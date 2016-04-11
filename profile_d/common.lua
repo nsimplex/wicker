@@ -45,9 +45,8 @@ local RAN = false
 local function kernel_postinit()
     if RAN then return end
 
-    for i = 1, #COMMON_MODULES do
-        local modulename = COMMON_MODULES[i]
-        modprobe(modulename)
+    for _, module_name in ipairs(COMMON_MODULES) do
+        modprobe(module_name)
     end
 
     RAN = true

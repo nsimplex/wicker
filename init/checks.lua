@@ -21,8 +21,12 @@ local getmetatable = assert( _G.getmetatable )
 local error = assert( kdebug.error )
 assert(error == _K.error)
 
-local getlocal = assert( kdebug.getlocal )
-local getinfo = assert( kdebug.getinfo )
+local raw_error = assert( kdebug.raw_error )
+
+local raw_getinfo = assert( kdebug.raw_getinfo )
+-- local getinfo = assert( kdebug.getinfo )
+local raw_getlocal = assert( kdebug.raw_getlocal )
+-- local getlocal = assert( kdebug.getlocal )
 
 local getupvalue = assert( _G.debug.getupvalue )
 
@@ -80,7 +84,7 @@ _K.checkers = checkers
 ---
 
 local function get_func_info(info, target_lvl)
-    return info or getinfo(target_lvl + 1, "nfu") or {}
+    return info or raw_getinfo(target_lvl + 1, "nfu") or {}
 end
 
 local function get_func_name(info)
@@ -91,10 +95,11 @@ local function get_func_func(info)
     return info and info.func or error("No function in checked stack level.")
 end
 
-local function expand_checks(info, idx, consumer, testname, ...)
-    if testname == nil then return true end
+-- What to add to a Lua call stack index after a tail call.
+local TAIL_CALL_LVL_INC = (IS_LUA51 and 1 or 0)
 
-    local TARGET_LVL = 2
+local function expand_checks(info, idx, target_lvl, consumer, testname, ...)
+    if testname == nil then return true end
 
     local testval = nil
 
@@ -102,7 +107,7 @@ local function expand_checks(info, idx, consumer, testname, ...)
         testval = testname
         testname = checkernames[testval]
         if testname == nil then
-            info = assert( get_func_info(info, TARGET_LVL) )
+            info = assert( get_func_info(info, target_lvl) )
             local func = assert(info.func)
             local nups = assert(info.nups)
 
@@ -117,7 +122,7 @@ local function expand_checks(info, idx, consumer, testname, ...)
             if testname2 == nil then
                 local err_msg = ("Function '%s' has no upvalue matching checker id '%s'.")
                     :format(get_func_name(info), tostring(testval))
-                return error(err_msg, 2)
+                return raw_error(err_msg, target_lvl)
             end
 
             assert(type(testname) == "string")
@@ -126,9 +131,13 @@ local function expand_checks(info, idx, consumer, testname, ...)
         end
     end
 
-    info = consumer(info, idx, TARGET_LVL + 1, testname, testval)
+    local status
+    status, info = consumer(info, idx, target_lvl + 1, testname, testval)
+    if not status then
+        return false, info
+    end
 
-    return expand_checks(info, idx + 1, consumer, ...)
+    return expand_checks(info, idx + 1, target_lvl + TAIL_CALL_LVL_INC, consumer, ...)
 end
 
 local function metatable_tester(meta)
@@ -197,7 +206,7 @@ local function apply_single_check(info, idx, target_lvl, testname, testval)
 
             if strict_checkfn == nil then
                 info = get_func_info(info, target_lvl)
-                return error(("No test for type '%s' under function '%s'.")
+                return raw_error(("No test for type '%s' under function '%s'.")
                     :format(strict_testname, get_func_name(info)), 2)
             end
 
@@ -209,27 +218,31 @@ local function apply_single_check(info, idx, target_lvl, testname, testval)
         checkfn = isopt and permissive_checkfn or strict_checkfn
     end
 
-    local k, v = getlocal(target_lvl, idx)
+    local k, v = raw_getlocal(target_lvl, idx)
 
     if k == nil then
         info = get_func_info(info, target_lvl)
-        return error(("bad checks list for '%s': no local at #%d.")
-            :format(get_func_name(info), idx), 2)
+        return raw_error(("bad checks list for '%s': no local at #%d.")
+            :format(get_func_name(info), idx), target_lvl)
     end
 
     if not checkfn(v) then
         info = get_func_info(info, target_lvl)
 
-        local msg = ("bad argument '%s' (#%d) to '%s' (%s expected, got %s)")
-            :format(k, idx, get_func_name(info), idx, pretty_testname(testname), type(v))
+        local msg = ("bad argument #%d ('%s') to '%s' (%s expected, got %s)")
+            :format(idx, k, get_func_name(info), pretty_testname(testname), type(v))
 
-        return error(msg, 2)
+        return false, msg
     end
 
-    return info
+    return true, info
 end
 
 local function checks(...)
-    return expand_checks(nil, 1, apply_single_check, ...)
+    local status, msg = expand_checks(nil, 1, 3, apply_single_check, ...)
+    if not status then
+        error(msg, 3)
+    end
+    return true
 end
 _K.checks = checks

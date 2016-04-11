@@ -536,6 +536,7 @@ do
     end
 end
 local Requirer = assert( local_Requirer )
+_K.Requirer = Requirer
 
 -- TODO: mark wicker and wicker.init as initialized in all of the relevant
 -- package.loaded's.
@@ -646,9 +647,6 @@ krequire "init.checks"
 assert(_K._G == _G)
 
 local stdlib = krequire "init.stdlib"
-assert(_K._G == _G)
-
-krequire "init.importers"
 assert(_K._G == _G)
 
 local kernel_thread = krequire.force "init.kernel"

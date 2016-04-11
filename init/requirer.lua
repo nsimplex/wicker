@@ -77,6 +77,11 @@ local function expand_env(env, ...)
     return env
 end
 
+local function is_valid_env(env)
+    local ty = type(env)
+    return ty == "table" or ty == "function"
+end
+
 local function preload_searcher(self, name, env)
 	local ret = self.package.preload[name]
 	if ret ~= nil then
@@ -261,7 +266,7 @@ local function wrapPackageTable(pristine_package, env, code_root, mod_desc)
     mod_desc = mod_desc or "module"
 
     assert(type(package) == "table")
-    assert(type(env) == "table")
+    assert(is_valid_env(env))
     assert(type(mod_desc) == "string")
 
     local self = {}
@@ -341,7 +346,7 @@ local function wrapPackageTable(pristine_package, env, code_root, mod_desc)
     self.GetEnvironment = getEnvironment
 
     local function setEnvironment(newenv)
-        assert(type(newenv) == "table")
+        assert(is_valid_env(newenv))
         env = newenv
     end
     self.SetEnvironment = setEnvironment

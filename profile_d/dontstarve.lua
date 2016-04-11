@@ -21,6 +21,15 @@ end
 
 ---
 
+local COMMON_DSMODULES = {
+    "constants",
+    "instrospection",
+    "platform_detection",
+    "pseudo_packages",
+}
+
+---
+
 local function apply_game_tweaks(modenv)
     local getmetatable = assert(getmetatable)
     local setmetatable = assert(setmetatable)
@@ -112,6 +121,10 @@ return krequire("profile_d.common")(function(resume_kernel)
 
     local TheMod = TheUser
     _K.TheMod = TheUser
+
+    for _, module_name in ipairs(COMMON_DSMODULES) do
+        dsmodprobe(module_name)
+    end
 
     while true do
         embedEnvSomehow(modenv)

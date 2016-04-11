@@ -86,28 +86,30 @@ local DebugInfoGetter = (function()
         local string_gsub = assert(_G.string.gsub)
 
         new_info_fetcher = function(what)
-            local wants_istailcall = true
+            -- Only relevant for Lua 5.1.
+            local wants_istailcall = IS_LUA51
 
             if what ~= nil then
                 assert(type(what) == "string")
-                local num_ts
-                what, num_ts = string_gsub(what, "t", "")
-                if not num_ts or num_ts == 0 then
-                    wants_istailcall = false
-                    if IS_GE_LUA52 then
-                        what = what.."t"
-                    end
-                end
+                -- FIXME
+                what = "n"..what
+
                 if not string_find(what, "S", 1, true) then
                     what = "S"..what
                 end
+
+                if IS_LUA51 then
+                    local num_ts
+                    what, num_ts = string_gsub(what, "t", "")
+                    if not num_ts or num_ts == 0 then
+                        wants_istailcall = false
+                    end
+                end
             end
 
-            -- The 'lvl' parameter is the last level.
-            -- Therefore, on the initial call, it should be the start level minus
-            -- one.
-            return function(thread, offset, lvl)
-                local lvl0 = lvl
+            local function get_next(thread, offset, lvl)
+                offset = offset + 1
+
                 local info
                 repeat
                     lvl = lvl + 1
@@ -116,8 +118,49 @@ local DebugInfoGetter = (function()
                         return
                     end
                 until info.source ~="=(tail call)"
+                return lvl, info
+            end
+
+            local function initialize(thread, offset, start_level)
+                local real_offset = 0
+                for i = 1, offset do
+                    real_offset = get_next(thread, 1, real_offset)
+                    if real_offset == nil then return end
+                end
+
+                local real_start_level = 0
+                for i = 1, start_level do
+                    real_start_level = get_next(thread, real_offset + 1, real_start_level)
+                    if real_start_level == nil then return end
+                end
+
+                assert(real_offset >= offset)
+                assert(real_start_level >= start_level)
+            
+                return real_offset, real_start_level - 1
+            end
+
+            -- The 'lvl' parameter is the last level.
+            -- Therefore, on the initial call, it should be the start level minus
+            -- one.
+            return function(thread, offset, start_level, s, lvl)
+                if lvl == nil then
+                    s.offset, lvl = initialize(thread, offset, start_level)
+                    if lvl == nil then return end
+                end
+                offset = s.offset
+
+                local info
+                lvl, info = get_next(thread, offset, lvl)
+                if lvl == nil then return end
+
                 if wants_istailcall and info.istailcall == nil then
-                    info.istailcall = (lvl - lvl0 > 1)
+                    local next_info = getinfo( process_getinfo_args(thread, lvl + 1 + offset, "S") )
+
+                    info.istailcall =
+                        next_info
+                        and (next_info.source == "=(tail call)")
+                        or false
                 end
 
                 return lvl, info
@@ -125,8 +168,12 @@ local DebugInfoGetter = (function()
         end
     else
         new_info_fetcher = function(what)
-            return function(thread, offset, lvl)
-                lvl = lvl + 1
+            return function(thread, offset, start_level, _, lvl)
+                if lvl == nil then
+                    lvl = start_level
+                else
+                    lvl = lvl + 1
+                end
                 local info = getinfo( process_getinfo_args(thread, lvl + offset, what) )
                 if info == nil then
                     return
@@ -136,10 +183,10 @@ local DebugInfoGetter = (function()
         end
     end
 
-    local function close_info_fetcher(f, thread, offset)
-        return function(_, lvl)
-            return f(thread, offset, lvl)
-        end
+    local function close_info_fetcher(f, thread, offset, start_level)
+        return function(s, lvl)
+            return f(thread, offset, start_level, s, lvl)
+        end, {}
     end
 
     local cache = {}
@@ -163,7 +210,7 @@ local DebugInfoGetter = (function()
                 local offset = bump_level(thread, 0, (same_thread_offset or 0) + 1)
                 start_level = start_level or 0
 
-                return close_info_fetcher(f, thread, offset), nil, (start_level - 1)
+                return close_info_fetcher(f, thread, offset, start_level)
             end
 
             cache[whatkey] = ret
@@ -180,6 +227,9 @@ kdebug.stack_indices = stack_indices
 
 ---
 
+-- The global getinfo
+local raw_getinfo = assert( _G.debug.getinfo )
+
 -- | Function behaving like Lua 5.2+'s debug.getinfo (so it skips tail calls),
 -- except it returns the real stack level before the debug info table, and it
 -- also accepts a final optional parameter consisting of a stack level offset
@@ -193,14 +243,20 @@ local getinfo
 -- are skipped to the convention adopted by the current Lua version.
 local normalize_stack_idx
 
+-- The global debug.getlocal
+local raw_getlocal = assert( _G.debug.getlocal )
+
+-- The global debug.setlocal
+local raw_setlocal = assert( _G.debug.setlocal )
+
 -- debug.getlocal normalized
-local getlocal = assert( _G.debug.getlocal )
+local getlocal = raw_getlocal
 
 -- debug.setlocal normalized
-local setlocal = assert( _G.debug.setlocal )
+local setlocal = raw_setlocal
 
 if IS_LUA51 then
-    local oldgetinfo = assert( debug.getinfo )
+    local oldgetinfo = assert( raw_getinfo )
 
     get_fullinfo = function(thread, lvl, what, same_thread_offset)
         thread, lvl, what, same_thread_offset =
@@ -211,9 +267,11 @@ if IS_LUA51 then
 
             same_thread_offset = same_thread_offset or 0
 
-            for real_lvl, info in infogetter(thread, 0, same_thread_offset) do
+            local offset = bump_level(thread, 0, same_thread_offset + 1)
+
+            for real_lvl, info in infogetter(thread, 0, offset) do
                 if lvl <= 0 then
-                    return bump_level(thread, real_lvl, -1), info
+                    return real_lvl, info
                 else
                     lvl = lvl - 1
                 end
@@ -224,6 +282,8 @@ if IS_LUA51 then
     end
 
     getinfo = function(thread, lvl, what)
+        thread, lvl, what =
+            if_not_thread_shift_right(thread, lvl, what, same_thread_offset)
         local real_lvl, info = get_fullinfo(thread, lvl, what, 1)
         return info
     end
@@ -231,7 +291,7 @@ if IS_LUA51 then
     -- Assumes an explicit nil thread if absent.
     local function normalize_thread_lvl_pair(thread, lvl, offset)
         offset = offset or 0
-        offset = offset + 1
+        offset = offset + 2
 
         local real_lvl = get_fullinfo(thread, lvl, "", offset)
 
@@ -298,8 +358,12 @@ else
 end
 
 kdebug.get_fullinfo = get_fullinfo
+kdebug.raw_getinfo = raw_getinfo
 kdebug.getinfo = getinfo
 kdebug.normalize_stack_idx = normalize_stack_idx
+
+kdebug.raw_getlocal = raw_getlocal
+kdebug.raw_setlocal = raw_setlocal
 kdebug.getlocal = getlocal
 kdebug.setlocal = setlocal
 
@@ -507,21 +571,23 @@ kdebug.traceback = traceback
 --  Error
 --------------------------------------------------------------------------------
 
+local raw_error = assert( _G.error )
 local k_error
 
 if IS_LUA51 then
-    local error = assert( _G.error )
+    local error = raw_error
 
     k_error = function(msg, lvl)
         lvl = lvl or 1
         if lvl ~= 0 then
-            lvl = normalize_stack_idx(lvl + 1)
+            lvl = normalize_stack_idx(lvl)
         end
-        return error(msg, lvl)
+        return error(msg, lvl + 1)
     end
 else
-    k_error = assert( _G.error )
+    k_error = raw_error
 end
+kdebug.raw_error = raw_error
 kdebug.error = k_error
 
 

@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 local assert = assert
 local _K = assert( _K )
+local _G = assert( _G )
 
 local WICKER_ROOT = assert( WICKER_ROOT )
 
@@ -29,12 +30,27 @@ local user_id = require_boot_param "id"
 ---
 
 function AssertEnvironmentValidity(env)
-    assert( env.GetUserKey == nil or env.GetUserKey() == GetUserKey(), env._NAME )
-    assert( env.TheUser == nil or _K.TheUser == nil or env.TheUser == _K.TheUser, env._NAME )
+    assert( env._M == env )
+    assert( env._ENV == env )
+    assert( env._K == nil or env._K == _K )
+    assert( env._G == nil or env._G == _G )
 
-    assert( env.GetModKey == nil or env.GetModKey() == GetModKey(), env._NAME )
-    assert( env.TheMod == nil or _K.TheMod == nil or env.TheMod == _K.TheMod, env._NAME )
-    assert( modenv == nil or env.modname == nil or env.modname == modenv.modname, env._NAME )
+    assert( env.GetUserKey() == _K.GetUserKey(), env._NAME )
+    assert( _K.TheUser == nil or env.TheUser == _K.TheUser, env._NAME )
+
+    assert( env.GetModKey() == _K.GetModKey(), env._NAME )
+    assert( _K.TheMod == nil or env.TheMod == _K.TheMod, env._NAME )
+    if _K.modenv ~= nil then
+        -- Some Don't Starve specific extra checks.
+        local modenv = _K.modenv
+        assert( env.modname == modenv.modname, env._NAME )
+        assert( env.modinfo == modenv.modinfo, env._NAME )
+        -- TODO: see if this should be done to play nice with DST's mod
+        -- debugging scheme.
+        -- assert( env.env == modenv )
+    end
+
+    return env
 end
 
 
