@@ -61,6 +61,10 @@ local function SetKernel(k)
 end
 _M.SetKernel = SetKernel
 
+---
+
+local function id1(x) return x end
+
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 --  Searchers
@@ -71,11 +75,14 @@ _M.SetKernel = SetKernel
 
 local function expand_env(self, name, ...)
     local env = self.GetEnvironment()
+    local wrapper_fn
     if type(env) == "function" then
-        env = env(name, self, ...)
+        env, wrapper_fn = env(name, self, ...)
     end
+    wrapper_fn = wrapper_fn or id1
     assert(type(env) == "table")
-    return env
+    assert(type(wrapper_fn) == "function")
+    return env, wrapper_fn
 end
 
 local function is_valid_env(env)
@@ -86,8 +93,9 @@ end
 local function preload_searcher(self, name)
 	local ret = self.package.preload[name]
 	if ret ~= nil then
-        _K.raw_setfenv(ret, expand_env(self, name))
-		return ret
+        local env, wrapper_fn = expand_env
+        _K.raw_setfenv(ret, env)
+		return wrapper_fn(ret)
 	else
 		return "no field package.preload['"..name.."']"
 	end
@@ -107,12 +115,13 @@ local function default_searcher(self, name)
     for pathspec in self.package.path:gmatch("[^;]+") do
         local path = pathspec:gsub("%?", name, 1)
         if file_exists(path) then
-            local fn, err = loadfile(path, nil, expand_env(self, name))
+            local env, wrapper_fn = expand_env(self, name)
+            local fn, err = loadfile(path, nil, env)
             if type(fn) ~= "function" then
                 err = tostring(err or fn or "Unknown error")
                 return error(err, 3)
             end
-            return fn
+            return wrapper_fn(fn)
         else
             nfails = nfails + 1
             failed_paths[nfails] = path
@@ -159,7 +168,7 @@ local function set_package_loaded(package, name, val)
     return val
 end
 
-local function custom_require(self, basic_name)
+local function custom_try_require(self, basic_name)
     local package = self.package
     local full_name = self.module_name_map(basic_name)
     local ret = package.loaded[full_name]
@@ -185,7 +194,7 @@ local function custom_require(self, basic_name)
                         ret = true
                     end
 				end
-                return set_package_loaded(package, full_name, ret)
+                return true, set_package_loaded(package, full_name, ret)
 			elseif type(fn) == "string" then
                 nfails = nfails + 1
                 fail_pieces[nfails] = fn
@@ -193,10 +202,19 @@ local function custom_require(self, basic_name)
 		end
 
 		_G.table.insert(fail_pieces, 1, ("%s '%s' not found:"):format(mod_desc, full_name))
-		return error(_G.table.concat(fail_pieces, "\n"), 3)
+		return false, _G.table.concat(fail_pieces, "\n")
 	end
 
-    return ret
+    return true, ret
+end
+
+local function custom_require(self, basic_name)
+    local status, ret = custom_try_require(self, basic_name)
+    if status then
+        return ret
+    else
+        return error(ret, 3)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -315,7 +333,10 @@ local function wrapPackageTable(pristine_package, env, code_root, mod_desc)
 
     ---
 
-    self.require = self
+    self.require = close_method(self, custom_require)
+
+    self.try_require = close_method(self, custom_try_require)
+    self.try = self.try_require
 
     function self.force_require(name, ...)
         self.package.loaded[name] = nil

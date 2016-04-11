@@ -556,8 +556,7 @@ krequire.SetPackageLoaded("", _K)
 --  Defining the basic module-like functions used to wrap all main chunks.
 --------------------------------------------------------------------------------
 
--- TODO: make sure the new _PACKAGE format doesn't break the loading system
--- (the final dot was removed).
+-- Note that _PACKAGE does not include a trailing separator.
 local function bless_super_basic_module(env, package, name)
     assert( type(name) == "string", "String expected as module name." )
 
@@ -565,7 +564,6 @@ local function bless_super_basic_module(env, package, name)
     env._ENV = env
 	env._NAME = name
 	env._PACKAGE = fs.pkgname(name) or ""
-    -- name:match("^(.-)[%a_][%w_]*$") or ""
 
     env._G = _G
     env.assert = assert
