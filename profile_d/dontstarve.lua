@@ -19,6 +19,18 @@ local function dflt_boot_params(modenv)
     }
 end
 
+local function apply_default_boot_params(boot_params, modenv)
+    boot_params = weakMerge(boot_params or {}, dflt_boot_params(modenv))
+
+    local MODROOT = assert(modenv.MODROOT)
+
+    boot_params.usercode_root =
+        MODROOT..boot_params.modcode_root
+    boot_params.modcode_root = nil
+
+    return boot_params
+end
+
 ---
 
 local COMMON_DSMODULES = {
@@ -90,14 +102,13 @@ return krequire("profile_d.common")(function(resume_kernel)
     local modenv, boot_params = coroutine.yield()
 
     assert(modenv, "Please provide the mod environment as the first argument to the dontstarve profile.")
+    
+    local modname = assert(modenv.modname)
+    local MODROOT = assert(modenv.MODROOT)
 
-    boot_params = weakMerge(boot_params or {}, dflt_boot_params(modenv))
+    apply_default_boot_params(boot_params, modenv)
 
     ---
-
-    boot_params.usercode_root =
-        boot_params.modcode_root or boot_params.usercode_root
-    boot_params.modcode_root = nil
 
     check_pristine(boot_params)
     apply_game_tweaks(modenv)
@@ -116,19 +127,36 @@ return krequire("profile_d.common")(function(resume_kernel)
     end
 
     local TheUser = assert( resume_kernel(boot_params) )
-    local dsmodprobe = NewModProber("dsmodules.", "Don't Starve kernel module")
-    _K.dsmodprobe = dsmodprobe
 
     local TheMod = TheUser
     _K.TheMod = TheUser
+    
+    local dsmodprobe = NewModProber("dsmodules.", "Don't Starve kernel module")
+    _K.dsmodprobe = dsmodprobe
 
     for _, module_name in ipairs(COMMON_DSMODULES) do
         dsmodprobe(module_name)
     end
 
+    local function get_modenv()
+        return modenv
+    end
+
+    local use = Requirer( get_modenv, MODROOT, "mod file" )
+    _K.use = use
+
+    local function extend_modenv()
+        assert(modenv.GLOBAL == _G)
+        modenv._G = _G
+        modenv.TheMod = TheMod
+        modenv.use = use
+        modenv.wickerrequire = assert( wickerrequire )
+        modenv.modrequire = assert( modrequire )
+    end
+
     while true do
         embedEnvSomehow(modenv)
-        assert( TheMod )
+        extend_modenv()
         modenv = coroutine.yield( TheMod )
     end
 end)

@@ -564,7 +564,7 @@ local function bless_super_basic_module(env, package, name)
 	env._M = env
     env._ENV = env
 	env._NAME = name
-	env._PACKAGE = fs.pkgname(name)
+	env._PACKAGE = fs.pkgname(name) or ""
     -- name:match("^(.-)[%a_][%w_]*$") or ""
 
     env._G = _G

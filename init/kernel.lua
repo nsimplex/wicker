@@ -165,24 +165,12 @@ return coroutine.create(function(boot_params)
     assert( pacman )
 
 	local BindTheKernel = assert( BindTheKernel )
-	assert( not InjectTheKernel )
-	assert( not BecomeTheKernel )
-	assert( BindTable )
-	assert( InjectTable )
-	assert( BecomeTable )
-    assert( BindTheUser )
-	assert( BindTheMod )
-	InjectTheMod = nil
-    pacman.InjectTheMod = nil
-	assert( BecomeTheMod )
 
     modprobe_init "standard_requirers"
 	
-	modprobe_init("bindings", BindTheKernel)
-
 	modprobe_init("extra_utilities")
 
-	modprobe_init("package_searching_reroute", boot_params, wicker_stem, module)
+	modprobe_init("package_searching_reroute")
 
 	modprobe_init("hooks")
 	

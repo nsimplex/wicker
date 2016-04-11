@@ -11,6 +11,12 @@ local assert = assert
 local _K = assert( _K )
 local _G = assert( _G )
 
+local error = assert( error )
+
+local type = assert( type )
+local tostring = assert( tostring )
+local pcall = assert( pcall )
+
 ---
 
 modprobe_init "layering"
@@ -32,37 +38,26 @@ local InjectNonPrivatesIntoTable = assert( InjectNonPrivatesIntoTable )
 
 ---
 
--- Maps importer functions to their metadata.
-local importer_metadata = {}
-
--- | The exposed version of this function "multiplies" the new importer with
--- the available management prototypes.
---
--- This is up here mainly to document the fields in the 'data' table.
-local function raw_register_importer(importer, data)
+-- | This is up here mainly to document the fields in the 'metadata' table.
+local function validate_importer_metadata(importer, metadata)
     assert( IsCallable(importer) )
 
-    assert(type(data) == "table")
-    assert(type(data.name) == "string")
-    assert(type(data.category) == "string")
-    assert(data.lowpriority == nil or type(data.lowpriority) == "boolean")
-
-    if importer_metadata[importer] ~= nil then
-        error("Importer '"..data.name.."' already registered.")
-    end
-
-    importer_metadata[importer] = data
+    assert(type(metadata) == "table")
+    assert(type(metadata.name) == "string")
+    assert(type(metadata.category) == "string")
+    assert(metadata.lowpriority == nil or type(metadata.lowpriority) == "boolean")
 end
 
 ---
 
-local function push_importer_error(importer, what)
+local function push_importer_error(metadata, what)
     if type(what) == "string" then
         what = "'" .. what .. "'"
     else
         what = tostring(what or "")
     end
-    return error(  ("The %s(%s) call didn't return a table"):format( importer_metadata[importer].name, what), 3  )
+    local name = metadata and metadata.name or "???"
+    return error(  ("The %s(%s) call didn't return a table"):format( name, what), 3  )
 end
 
 
@@ -88,17 +83,13 @@ local function normalize_args(env, what)
 end
 
 -- Copies the loaded package.
-function management_prototypes.Inject(importer)
-    assert( IsCallable(importer) )
-
-    assert( type(importer_metadata[importer].name) == "string" )
-
+function management_prototypes.Inject(importer, metadata)
     return function(env, what)
         env, what = normalize_args(env, what)
 
         local M = importer(what)
         if type(M) ~= "table" then
-            push_importer_error(importer, what)
+            push_importer_error(metadata, what)
         end
 
         InjectNonPrivatesIntoTable( env, pairs(M) )
@@ -110,21 +101,7 @@ end
 --
 -- Only public string keys (i.e., strings not starting with '_') from the
 -- parent environment are exposed.
-function management_prototypes.Bind(importer)
-    assert( IsCallable(importer) )
-
-    local push_error
-
-    local metadata = importer_metadata[importer]
-    if metadata == nil then
-        push_error = function()
-            return error("Call didn't return a table.")
-        end
-    else
-        assert( type(metadata.name) == "string" )
-        push_error = push_importer_error
-    end
-
+function management_prototypes.Bind(importer, metadata)
     local function create_index(M)
         return function(_, k)
             if IsPublicString(k) then
@@ -138,7 +115,7 @@ function management_prototypes.Bind(importer)
 
         local M = importer(what)
         if type(M) ~= "table" then
-            push_error(importer, what)
+            push_importer_error(metadata, what)
         end
 
         AttachMetaIndex( env, create_index(M), metadata.lowpriority )
@@ -149,14 +126,11 @@ end
 
 -- Replaces the environment of the calling function with the loaded
 -- environment.
-function management_prototypes.Become(importer)
-    assert( IsCallable(importer) )
-    assert( type(importer_metadata[importer].name) == "string" )
-
+function management_prototypes.Become(importer, metadata)
     return function(what)
         local M = importer(what)
         if type(M) ~= "table" then
-            push_importer_error(importer, what)
+            push_importer_error(metadata, what)
         end
         local env, i = GetOuterEnvironment()
         assert( type(i) == "number" )
@@ -175,17 +149,33 @@ end
 --  The _register_importer function.
 --------------------------------------------------------------------------------
 
-local function _register_importer(importer, data)
-    raw_register_importer(importer, data)
+local function _register_importer_at(t, importer, metadata, filter)
+    validate_importer_metadata(importer, metadata)
+
+    local filterset
+    if filter then
+        filterset = {}
+        for i = 1, #filter do
+            filterset[filter[i]] = true
+        end
+    end
 
     for action, prototype in pairs(management_prototypes) do
-        local k = action..data.category
-        local v = prototype(importer)
+        if not filterset or filterset[action] then
+            local k = action..metadata.category
+            local v = prototype(importer, metadata)
 
-        pacman[k] = v
-        assert( _K[k] == v )
+            t[k] = v
+        end
     end
 end
+
+pacman._register_importer_at = _register_importer_at
+
+local function _register_importer(...)
+    return _register_importer_at(pacman, ...)
+end
+
 pacman._register_importer = _register_importer
 assert( _K._register_importer == _register_importer )
 
@@ -207,6 +197,9 @@ _register_importer(GetTable, {
     name = "GetTable",
     category = "Table",
 })
+assert(BindTable)
+assert(BecomeTable)
+assert(InjectTable)
 
 local function GetGlobal()
     return _G
@@ -216,6 +209,9 @@ _register_importer(GetGlobal, {
     category = "Global",
     lowpriority = true,
 })
+assert(BindGlobal)
+assert(BecomeGlobal)
+assert(InjectGlobal)
 
 local function GetTheUser()
     return wickerrequire "api.theuser"
@@ -224,7 +220,13 @@ _K.GetTheUser = GetTheUser
 _register_importer(GetTheUser, {
     name = "GetTheUser",
     category = "TheUser",
+}, {
+    "Bind",
+    "Become",
 })
+assert(BindTheUser)
+assert(BecomeTheUser)
+assert(not InjectTheUser)
 
 local function GetTheMod()
     return wickerrequire "api.themod"
@@ -233,15 +235,25 @@ _K.GetTheMod = GetTheMod
 _register_importer(GetTheMod, {
     name = "GetTheMod",
     category = "TheMod",
+}, {
+    "Bind",
+    "Become",
 })
+assert(BindTheMod)
+assert(BecomeTheMod)
+assert(not InjectTheMod)
 
 -- This receives special treatment.
 local TheKernel = const(_K)
-raw_register_importer(TheKernel, {
+_register_importer(TheKernel, {
     name = "TheKernel",
     category = "TheKernel",
+}, {
+    "Bind",
 })
-pacman.BindTheKernel = management_prototypes.Bind(TheKernel)
+assert(BindTheKernel)
+assert(not InjectTheKernel)
+assert(not BecomeTheKernel)
 
 ---
 

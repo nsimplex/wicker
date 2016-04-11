@@ -69,9 +69,10 @@ _M.SetKernel = SetKernel
 --  like'_G.package'.
 --------------------------------------------------------------------------------
 
-local function expand_env(env, ...)
+local function expand_env(self, name, ...)
+    local env = self.GetEnvironment()
     if type(env) == "function" then
-        env = env(...)
+        env = env(name, self, ...)
     end
     assert(type(env) == "table")
     return env
@@ -82,10 +83,10 @@ local function is_valid_env(env)
     return ty == "table" or ty == "function"
 end
 
-local function preload_searcher(self, name, env)
+local function preload_searcher(self, name)
 	local ret = self.package.preload[name]
 	if ret ~= nil then
-        _K.raw_setfenv(ret, expand_env(env, name, self))
+        _K.raw_setfenv(ret, expand_env(self, name))
 		return ret
 	else
 		return "no field package.preload['"..name.."']"
@@ -93,7 +94,7 @@ local function preload_searcher(self, name, env)
 end
 
 
-local function default_searcher(self, name, env)
+local function default_searcher(self, name)
     local fs = assert( _K.fs )
     local file_exists = assert( fs.file_exists )
     local loadfile = assert( _K.loadfile )
@@ -106,7 +107,7 @@ local function default_searcher(self, name, env)
     for pathspec in self.package.path:gmatch("[^;]+") do
         local path = pathspec:gsub("%?", name, 1)
         if file_exists(path) then
-            local fn, err = loadfile(path, nil, expand_env(env, name, self))
+            local fn, err = loadfile(path, nil, expand_env(self, name))
             if type(fn) ~= "function" then
                 err = tostring(err or fn or "Unknown error")
                 return error(err, 3)
@@ -158,12 +159,15 @@ local function set_package_loaded(package, name, val)
     return val
 end
 
-local function custom_require(package, mod_desc, name, ...)
-    local ret = package.loaded[name]
+local function custom_require(self, basic_name)
+    local package = self.package
+    local full_name = self.module_name_map(basic_name)
+    local ret = package.loaded[full_name]
     if not ret then
-        mod_desc = tostring(mod_desc or "module")
+        local mod_desc = tostring(self.mod_desc or "module")
 
-        assert(type(name) == "string")
+        assert(type(basic_name) == "string")
+        assert(type(full_name) == "string")
 
 		local fail_pieces = {}
         local nfails = 0
@@ -172,23 +176,23 @@ local function custom_require(package, mod_desc, name, ...)
 
         for i = 1, #searchers do
             local searcher = searchers[i]
-			local fn = searcher(name, ...)
+			local fn = searcher(full_name)
 			if type(fn) == "function" then
-				ret = fn(name)
+				ret = fn(full_name)
 				if ret == nil then
-					ret = package.loaded[name]
+					ret = package.loaded[full_name]
                     if ret == nil then
                         ret = true
                     end
 				end
-                return set_package_loaded(package, name, ret)
+                return set_package_loaded(package, full_name, ret)
 			elseif type(fn) == "string" then
                 nfails = nfails + 1
                 fail_pieces[nfails] = fn
 			end
 		end
 
-		_G.table.insert(fail_pieces, 1, ("%s '%s' not found:"):format(mod_desc, name))
+		_G.table.insert(fail_pieces, 1, ("%s '%s' not found:"):format(mod_desc, full_name))
 		return error(_G.table.concat(fail_pieces, "\n"), 3)
 	end
 
@@ -208,10 +212,7 @@ end
 
 -- Metatable of requirer objects.
 local requirer_meta = {
-    __call = function(self, name)
-        return custom_require(self.package, self.mod_desc,
-            self.module_name_map(name), self.GetEnvironment())
-    end,
+    __call = custom_require,
 }
 
 local function multiply_code_root(code_root)
@@ -256,6 +257,24 @@ local function new_prefixer(prefix)
         end
         return ret
     end
+end
+
+-- | 
+-- Module-local functions for manipulating prefix adders.
+--
+
+local function setPrefix(self, p)
+    self.module_name_map = new_prefixer(p)
+end
+
+local function appendPrefix(self, p)
+    self.module_name_map =
+        compose1(self.module_name_map, new_prefixer(p))
+end
+
+local function prependPrefix(self, p)
+    self.module_name_map =
+        compose1(new_prefixer(p), self.module_name_map)
 end
 
 -- Wraps a table equivalent to _G.package into a Requirer object. This is
@@ -323,22 +342,6 @@ local function wrapPackageTable(pristine_package, env, code_root, mod_desc)
     end
     self.SetCodeRoot = setCodeRoot
 
-    local function setPrefix(p)
-        self.module_name_map = new_prefixer(p)
-    end
-    self.SetPrefix = setPrefix
-
-    local function appendPrefix(p)
-        self.module_name_map =
-            compose1(self.module_name_map, new_prefixer(p))
-    end
-    self.AppendPrefix = appendPrefix
-
-    local function prependPrefix(p)
-        self.module_name_map =
-            compose1(new_prefixer(p), self.module_name_map)
-    end
-    self.PrependPrefix = prependPrefix
 
     local function getEnvironment()
         return env
@@ -351,24 +354,58 @@ local function wrapPackageTable(pristine_package, env, code_root, mod_desc)
     end
     self.SetEnvironment = setEnvironment
 
+    local function getAbsoluteRoot()
+        local r
+        local r2 = self
+        repeat
+            r, r2 = r2, r2._parent
+        until r2 == nil
+        assert(r and r.module_name_map == id1)
+        return r
+    end
+    self.GetAbsoluteRoot = getAbsoluteRoot
+
+    local function getSyntacticRoot()
+        local r
+        local r2 = self
+        repeat
+            assert( r2 ~= nil )
+            r, r2 = r2, r2._parent
+        until r.module_name_map == id1
+        assert(r)
+        return r
+    end
+    self.GetSyntacticRoot = getSyntacticRoot
+
     ---
 
     local function fork(child_prefix, child_mod_desc)
         child_mod_desc = child_mod_desc or mod_desc
+
         local child =
             wrapPackageTable(self.package, env, code_root, child_mod_desc)
+
+        child._parent = self
+
         if child_prefix then
-            child.AppendPrefix(child_prefix)
+            appendPrefix(child, child_prefix)
         end
+
         return child
     end
     self.fork = fork
 
+    local function fork_from_root(child_prefix, child_mod_desc, ...)
+        local r = getSyntacticRoot()
 
-    if path_prefix then
-        setPathPrefix(path_prefix)
+        local child = r.fork(child_prefix, child_mod_desc or mod_desc, ...)
+        child.SetEnvironment(getEnvironment())
+
+        return child
     end
+    self.fork_from_root = fork_from_root
 
+    ---
 
     return _G.setmetatable(self, requirer_meta)
 end
@@ -384,23 +421,6 @@ _M.is_requirer = function(x)
     return _G.getmetatable(x) == requirer_meta
 end
 _M.IsRequirer = _M.is_requirer
-
----
-
---[[
-local ModRequirer = Class(Requirer, function(self)
-	Requirer._ctor(self, _M)
-end)
-
-function ModRequirer:GetModEnvironment()
-	return self:GetDefaultEnvironment()
-end
-ModRequirer.GetModEnv = ModRequirer.GetModEnvironment
-
-function ModRequirer:GetModInfo()
-	return self:GetModEnvironment().modinfo
-end
-]]--
 
 ---
 
