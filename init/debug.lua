@@ -565,6 +565,10 @@ local function traceback(thread, message, start_level)
 end
 kdebug.traceback = traceback
 
+function kdebug.ptraceback(msg, lvl)
+    return TheUser:Say(traceback(msg, (lvl or 1) + 1))
+end
+
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------

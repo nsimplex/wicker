@@ -99,6 +99,7 @@ end
 ---
 
 return krequire("profile_d.common")(function(resume_kernel)
+    -- Waits for the user to provide input.
     local modenv, boot_params = coroutine.yield()
 
     assert(modenv, "Please provide the mod environment as the first argument to the dontstarve profile.")
@@ -126,7 +127,8 @@ return krequire("profile_d.common")(function(resume_kernel)
         return modenv.modname
     end
 
-    local TheUser = assert( resume_kernel(boot_params) )
+    -- Waits for init to reply.
+    local TheUser = assert( coroutine.yield( resume_kernel(boot_params) ) )
 
     local TheMod = TheUser
     _K.TheMod = TheUser
@@ -157,6 +159,7 @@ return krequire("profile_d.common")(function(resume_kernel)
     while true do
         embedEnvSomehow(modenv)
         extend_modenv()
+        -- Listens for further modenv input from the user.
         modenv = coroutine.yield( TheMod )
     end
 end)

@@ -663,8 +663,12 @@ local function resume_kernel(...)
     return resume_thread(kernel_thread, "WICKER KERNEL", ...)
 end
 
+local function profile_module(profile)
+    return "profile_d."..profile
+end
+
 local function resume_profile(profile, ...)
-    local profile_thread = krequire("profile_d."..profile)
+    local profile_thread = krequire(profile_module(profile))
     assert(type(profile_thread) == "thread")
 
     local Profile = profile:upper()
@@ -672,9 +676,36 @@ local function resume_profile(profile, ...)
     return resume_thread(profile_thread, "WICKER PROFILE "..Profile, ...)
 end
 
-local function start_profile(profile, ...)
+local BOOTSTRAPPED = false
+
+local function bootstrap(profile, ...)
+    assert(not BOOTSTRAPPED)
+    BOOTSTRAPPED = true
+
+    -- We start up the profile.
     resume_profile(profile, resume_kernel)
-    return resume_profile(profile, ...)
+
+    -- Now we feed it the user input.
+    resume_profile(profile, ...)
+
+    local TheUser = nil
+
+    assert(TheUser)
+
+    _K.RunUserPostInits()
+
+    -- Finally, we feed it the 'TheUser' object.
+    return resume_profile(profile, TheUser)
+end
+
+local function start_profile(profile, ...)
+    local is_actual_start = not krequire.package_loaded(profile_module(profile))
+
+    if is_actual_start then
+        return bootstrap(profile, ...)
+    else
+        return resume_profile(profile, ...)
+    end
 end
 
 -- local wickerrequire = krequire.fork(nil, "wicker module")
