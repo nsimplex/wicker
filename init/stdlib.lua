@@ -125,6 +125,11 @@ std.debug.setfenv = assert( std.debug.setfenv or std.setfenv )
 --  Extending stdlib's behavior
 --------------------------------------------------------------------------------
 
+std.try_require = assert( Requirer.std_requirer.try_require )
+std.prequire = assert( Requirer.std_requirer.prequire )
+
+---
+
 std.table.unpack = assert(std.table.unpack or std.unpack)
 std.unpack = std.table.unpack
 

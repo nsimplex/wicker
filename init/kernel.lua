@@ -92,7 +92,7 @@ return coroutine.create(function(boot_params)
 
     ---
 
-	announce("Received boot parameters, booting with root partition bound to '"
+	announce("Received boot parameters, booting with wicker rootfs bound to '"
         , WICKER_ROOT
         , "'..."
         )

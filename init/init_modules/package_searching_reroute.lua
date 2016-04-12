@@ -12,6 +12,7 @@ local assert = assert
 local _K, _G = assert(_K), assert(_G)
 
 local table = assert( table )
+local tostring = assert( tostring )
 
 ---
 
@@ -47,12 +48,13 @@ local function NewMappedSearcher(target_importer, input_map, output_map)
             if package.loaded[mapped_name] then
                 return function() return package.loaded[mapped_name] end
             end
-            local status, M = target_importer.try(mapped_name)
-            if status then
+            local M, err = target_importer.try_require(mapped_name)
+            if M ~= nil then
                 return output_map(M, mapped_name)
             else
-                -- Then 'M' is the error message.
-                return M
+                -- Then 'err' is an error message.
+				assert(err ~= nil, "Logic error.")
+                return tostring(err)
             end
         end
     end

@@ -161,6 +161,7 @@ end
 --------------------------------------------------------------------------------
 
 local function set_package_loaded(package, name, val)
+	assert( val ~= nil )
     for namevar in _K.fs.module_path_variants(name) do
         package.loaded[namevar] = val
     end
@@ -194,7 +195,7 @@ local function custom_try_require(self, basic_name)
                         ret = true
                     end
 				end
-                return true, set_package_loaded(package, full_name, ret)
+                return set_package_loaded(package, full_name, ret)
 			elseif type(fn) == "string" then
                 nfails = nfails + 1
                 fail_pieces[nfails] = fn
@@ -202,19 +203,30 @@ local function custom_try_require(self, basic_name)
 		end
 
 		_G.table.insert(fail_pieces, 1, ("%s '%s' not found:"):format(mod_desc, full_name))
-		return false, _G.table.concat(fail_pieces, "\n")
+		return nil, _G.table.concat(fail_pieces, "\n")
 	end
 
-    return true, ret
+    return ret
 end
 
-local function custom_require(self, basic_name)
-    local status, ret = custom_try_require(self, basic_name)
-    if status then
+local function custom_require(self, ...)
+    local ret, err = custom_try_require(self, ...)
+    if ret ~= nil then
         return ret
     else
-        return error(ret, 3)
+		assert(type(err) == "string", "Logic error.")
+        return error(err, 3)
     end
+end
+
+local function custom_prequire(self, ...)
+	local status, ret, err = pcall(custom_try_require, ...)
+	if status and ret == nil then
+		status = false
+		ret = err
+		assert(type(err) == "string", "Logic error.")
+	end
+	return status, ret
 end
 
 --------------------------------------------------------------------------------
@@ -302,8 +314,9 @@ local function wrapPackageTable(pristine_package, env, code_root, mod_desc)
 	env = env or _G
     mod_desc = mod_desc or "module"
 
-    assert(type(package) == "table")
+    assert(type(pristine_package) == "table")
     assert(is_valid_env(env))
+	assert(code_root == nil or type(code_root) == "string")
     assert(type(mod_desc) == "string")
 
     local self = {}
@@ -337,6 +350,8 @@ local function wrapPackageTable(pristine_package, env, code_root, mod_desc)
 
     self.try_require = close_method(self, custom_try_require)
     self.try = self.try_require
+
+	self.prequire = close_method(self, custom_prequire)
 
     function self.force_require(name, ...)
         self.package.loaded[name] = nil
@@ -404,7 +419,7 @@ local function wrapPackageTable(pristine_package, env, code_root, mod_desc)
         child_mod_desc = child_mod_desc or mod_desc
 
         local child =
-            wrapPackageTable(self.package, env, code_root, child_mod_desc)
+            wrapPackageTable(self.package, env, nil, child_mod_desc)
 
         child._parent = self
 
@@ -428,6 +443,12 @@ local function wrapPackageTable(pristine_package, env, code_root, mod_desc)
 
     ---
 
+	if code_root then
+		setCodeRoot(code_root)
+	end
+
+	---
+
     return _G.setmetatable(self, requirer_meta)
 end
 
@@ -442,6 +463,10 @@ _M.is_requirer = function(x)
     return _G.getmetatable(x) == requirer_meta
 end
 _M.IsRequirer = _M.is_requirer
+
+---
+
+_M.std_requirer = wrapPackageTable(_G.package, _G)
 
 ---
 
